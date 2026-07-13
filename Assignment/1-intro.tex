@@ -1,0 +1,38 @@
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+
+Software systems are rarely static. Over their lifetime, they are
+repeatedly \emph{migrated}: adapted internally so they keep working
+correctly as the surrounding technology landscape changes. Typical
+examples include moving a codebase to a new framework, upgrading a
+library to a newer major version, or changing an underlying data
+representation for efficiency or safety reasons. These migrations are
+necessary maintenance work, but they tend to be tedious, span huge
+codebases, and touch code written by many engineers over many years,
+which makes them costly and error-prone when done purely by hand
+\cite{hora2015developers, kula2018developers}.
+
+Historically, migrations have been automated with techniques ranging
+from regular-expression search-and-replace to purpose-built code
+transformation tools to fully custom domain-specific tooling. Each
+approach trades off precision, recall, and maintenance cost
+differently, and none handles the enormous diversity of coding styles
+in a codebase the size of Google's particularly well. The emergence
+of Large Language Models (LLMs) capable of reading and generating
+code opened up a new possibility: rather than hand-writing exhaustive
+transformation rules, an LLM can simply be prompted, in natural
+language, to make the required edits itself, while much cheaper
+heuristics narrow down \emph{where} in the codebase changes might be
+needed.
+
+This paper reports on exactly such a system, built and deployed
+inside Google to perform a specific, high-stakes migration: changing
+identifier fields in Protocol Buffer schemas from 32-bit integers to
+64-bit integers, to avoid identifier space exhaustion as systems grow.
+The paper's central contribution is a description of the end-to-end
+automated pipeline (reference discovery, automatic categorization,
+LLM-driven editing, and multi-stage validation) along with an
+evaluation across 39 real migrations carried out by three engineers
+over a full year. The study offers a large-scale evaluation of
+LLM-assisted code migration in a production environment.

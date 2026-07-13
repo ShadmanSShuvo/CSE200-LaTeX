@@ -1,0 +1,52 @@
+% =====================================================================
+\section{Discussion}
+% =====================================================================
+
+\subsection{Threats to Validity}
+The authors are candid about the limits of what the case study can
+show, and the study identifies four major threats to validity.
+
+\emph{Lack of a controlled comparison.} The study is not a controlled
+experiment against an alternative migration technique, so the
+individual contribution of each pipeline component, reference
+discovery, categorization, and the LLM itself, cannot be cleanly
+isolated from one another.
+
+\emph{Narrow scope.} The study is confined to a single organization's
+internal tooling, a single internally fine-tuned model, and a single
+kind of migration (widening an identifier's bit width). The authors
+caution that results may not transfer to other migration types, such
+as framework upgrades or dependency updates, which touch code in
+qualitatively different ways.
+
+\emph{Participant and developer bias.} Only three developers took
+part, and all three were also involved in building the system itself,
+which could make their satisfaction ratings more favorable than an
+arms-length evaluation would produce.
+
+\emph{Imprecise effort measurement.} The headline ``50\% time
+savings'' figure is based on developer perception rather than measured
+wall-clock time. The paper's chosen proxy for effort, Levenshtein edit
+distance between file snapshots, is easy to compute automatically but
+arguably under- or over-counts the true cognitive load of reviewing,
+understanding, and fixing a change.
+
+\subsection{Generalizability and Future Directions}
+Despite these caveats, the reported workflow, cheap, imprecise
+reference discovery paired with an LLM that fills the resulting
+precision gap, wrapped in an inexpensive-to-expensive chain of
+automated validators, may provide a reusable framework for other
+large-scale migration tasks rather than a solution specific to
+32-to-64-bit identifier migrations. The paper's own suggested future
+directions reinforce this framing: larger context windows, better
+support for lower-resource languages such as Dart, techniques to
+detect and suppress hallucinated no-op edits, and, most ambitiously,
+using an LLM not just to \emph{make} the edits but also to help
+\emph{decide where} edits are needed, which could shrink the
+left-over bucket that still requires manual triage. More broadly, the
+case study suggests that for large-scale code maintenance, the
+highest-leverage design choice may not be maximizing the precision of
+the static analysis used to locate candidate edits, but rather
+accepting an intentionally imprecise, high-recall search and letting
+a general-purpose LLM, backed by cheap automated checks, absorb the
+resulting precision gap.

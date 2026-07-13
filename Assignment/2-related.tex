@@ -1,0 +1,81 @@
+% =====================================================================
+\section{Background and Related Work}
+% =====================================================================
+
+\subsection{The Migration Problem}
+The paper motivates the work with a running example: a proto message
+describing a toy in an online store's inventory, where the
+\texttt{toy\_id} field is declared as a 32-bit integer. As the number
+of toys grows, the store risks exhausting the roughly 2.1 billion
+values representable by a signed 32-bit integer, so the field is
+widened to a 64-bit integer. This one-line schema edit ripples
+outward, though: every place that reads or writes the field, every
+bit-manipulation routine that assumed a 32-bit width, and every test
+that constructs identifiers with small, in-range sample values needs
+to be inspected and, in many cases, changed. Some references are
+\emph{direct} (a method call that reads the field), while others are
+\emph{indirect}, reached only through data flow, for instance a local
+variable later passed into the field setter. The authors note that an
+earlier, fully manual version of this same kind of migration took
+roughly two years to complete for a single identifier, largely
+because regular expressions used to find call sites were
+simultaneously too broad (matching unrelated fields with similar
+names) and too narrow (missing indirect references and magic numbers
+tied to the old bit width).
+
+
+
+\subsection{Code Translation and Transformation}
+The paper situates its contribution within two long-standing lines of
+programming-languages research. \emph{Code translation} concerns
+converting code from one language to another, historically via
+hand-written parsers and abstract-syntax-tree rewriting rules
+\cite{cordy2004txl}, and more recently via learned translation models.
+\emph{Code transformation} concerns rewriting code \emph{within} the
+same language, traditionally using rule-based languages such as TXL
+\cite{cordy2004txl} and Stratego/XT \cite{bravenboer2008stratego}, or
+by inferring transformation-by-example rules from a small number of
+sample edits. Recent systems such as CodePlan use LLMs with
+program-analysis-guided planning to make repository-scale, multi-file
+changes \cite{bairi2024codeplan}, and other work automatically mines
+reusable transformation rules for library APIs from pull requests
+\cite{ramos2023melt}. Closest in spirit are two smaller prior studies:
+one evaluating GPT-4 on migrating a handful of methods off an old
+version of the SQLAlchemy library \cite{almeida2024library}, and
+another studying how developers collaborate with an AI
+coding-migration assistant moving a Java 7 codebase to Java 18
+\cite{tehrani2024evaluating}. The paper under reproduction differs
+from both mainly in scale: it covers 39 distinct migrations, hundreds
+of code changes, and tens of thousands of edits, carried out
+continuously over a full year inside a production monorepo rather
+than as a bounded, small-scale experiment.
+
+\subsection{Automated Refactoring and Rule Mining}
+Beyond translation and whole-file transformation, a broader strand of
+work targets narrower, well-defined refactoring and transformation
+tasks using LLMs paired with static or dynamic program analysis,
+mining reusable transformation rules from examples rather than
+requiring a developer to hand-write them
+\cite{ramos2023melt, bairi2024codeplan}. Compared to this line of
+work, the identifier bit-width migration studied in the reproduced
+paper is unusual in that a single, uniform intent, widening an
+identifier, must be applied consistently across an enormous number of
+call sites in several different languages, rather than as a one-off
+refactoring of a single method or class.
+
+\subsection{Companion Reports at Google}
+The authors note that this paper is a detailed follow-up to two
+shorter, earlier write-ups describing the same system: an industry
+practice report and an internal engineering blog post, both of which
+introduced the system at a higher level before this paper's
+twelve-month, 39-identifier case study was available.
+
+The system builds on several pieces of existing Google infrastructure:
+a single, monolithic source-code repository shared across the company
+\cite{potvin2016google}; Kythe, a code-indexing system used to resolve
+symbol references across languages; Critique, Google's internal,
+browser-based code review tool \cite{sadowski2018modern}; and an
+internally fine-tuned variant of the Gemini family of models
+\cite{team2023gemini}, trained using the DIDACT framework for
+software-engineering tasks such as code-review comment resolution and
+build-error repair.

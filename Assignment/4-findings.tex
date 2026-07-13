@@ -1,0 +1,179 @@
+% =====================================================================
+\section{Findings and Results}
+% =====================================================================
+
+\subsection{Overall Migration Results}
+Over twelve months, three developers used the system to migrate 39
+distinct identifiers, producing 595 submitted code changes and
+93{,}574 individual edits in total. Table~\ref{tab:aggregate}
+summarizes the headline numbers reported in the paper.
+
+\begin{table}[t]
+\caption{Aggregate statistics reported for the case study (reproduced from Table~1 of the original paper).}
+\label{tab:aggregate}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Metric & Value \\
+\midrule
+Identifiers migrated & 39 \\
+Developers involved & 3 \\
+Total code changes submitted & 595 \\
+\quad LLM-Only & 214 (35.97\%) \\
+\quad LLM-then-Human & 229 (38.48\%) \\
+\quad Human-Only & 152 (25.55\%) \\
+Distinct reviewers & 306 \\
+Distinct teams involved & 149 \\
+Total edits (all IDs) & 93{,}574 \\
+\quad Attributed to the LLM (LLM$\Delta$) & 64{,}996 (69.46\%) \\
+\quad Attributed to humans (Human$\Delta$) & 28{,}578 (30.54\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In other words, 74.45\% of all submitted code changes contained at
+least some LLM-authored content (LLM-Only plus LLM-then-Human), and
+the LLM was responsible for roughly two-thirds of all edited
+characters across the whole study. The size of individual migrations
+varied enormously. Some identifiers required edits spread across
+hundreds of files in multiple languages, while others were confined
+to a single file.
+
+\subsection{Results Across Individual Migrations}
+Table~\ref{tab:perid} reproduces the paper's full per-identifier
+breakdown, sorted by descending total edit volume (Total$\Delta$).
+The two largest migrations, ID-30 and ID-32, together account for a
+disproportionate share of all edits in the study, roughly half of the
+total across all 39 identifiers combined, while the smallest, such as
+ID-10, ID-24, and ID-39, touched only a handful of files. Larger
+identifiers also tended to span more programming languages at once:
+ID-32 alone touched five different languages, versus a single
+language for most of the smaller identifiers.
+
+
+\begin{table}[t]
+\caption{Per-identifier statistics, sorted by descending Total$\Delta$ (reproduced from Table~2 of the original paper).}
+\label{tab:perid}
+\footnotesize
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ID & Total$\Delta$ & \#Changes & \#Files & \#Langs \\
+\midrule
+ID-30 & 23{,}800 & 39 & 418 & 2 \\
+ID-32 & 22{,}822 & 185 & 392 & 5 \\
+ID-20 & 16{,}406 & 28 & 175 & 2 \\
+ID-28 & 7{,}059 & 29 & 89 & 1 \\
+ID-03 & 4{,}594 & 21 & 350 & 4 \\
+ID-37 & 2{,}774 & 25 & 58 & 1 \\
+ID-06 & 2{,}458 & 23 & 41 & 2 \\
+ID-35 & 2{,}039 & 14 & 38 & 2 \\
+ID-19 & 1{,}937 & 17 & 21 & 1 \\
+ID-18 & 1{,}889 & 20 & 33 & 1 \\
+ID-29 & 1{,}825 & 6 & 38 & 1 \\
+ID-04 & 1{,}279 & 10 & 27 & 1 \\
+ID-31 & 1{,}223 & 15 & 31 & 1 \\
+ID-26 & 1{,}151 & 4 & 11 & 1 \\
+ID-34 & 1{,}088 & 4 & 16 & 2 \\
+ID-09 & 1{,}038 & 6 & 16 & 1 \\
+ID-38 & 844 & 8 & 17 & 2 \\
+ID-14 & 802 & 7 & 12 & 2 \\
+ID-01 & 798 & 16 & 103 & 4 \\
+ID-07 & 673 & 7 & 31 & 1 \\
+ID-05 & 584 & 5 & 9 & 1 \\
+ID-08 & 578 & 6 & 13 & 2 \\
+ID-22 & 571 & 2 & 19 & 1 \\
+ID-17 & 538 & 4 & 6 & 1 \\
+ID-36 & 386 & 5 & 8 & 2 \\
+ID-12 & 374 & 5 & 40 & 4 \\
+ID-02 & 367 & 10 & 14 & 1 \\
+ID-23 & 326 & 10 & 15 & 1 \\
+ID-33 & 299 & 7 & 7 & 2 \\
+ID-13 & 270 & 8 & 14 & 2 \\
+ID-27 & 221 & 5 & 6 & 1 \\
+ID-15 & 221 & 11 & 12 & 2 \\
+ID-16 & 156 & 9 & 13 & 2 \\
+ID-21 & 146 & 3 & 10 & 1 \\
+ID-25 & 128 & 7 & 11 & 1 \\
+ID-10 & 98 & 1 & 4 & 1 \\
+ID-11 & 95 & 7 & 7 & 2 \\
+ID-24 & 26 & 2 & 2 & 1 \\
+ID-39 & 23 & 1 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+The LLM$\Delta$ share per identifier ranged from close to 100\% for
+some identifiers (e.g., ID-10 and ID-39) down to well under half for
+others (e.g., ID-15 at 25.34\%). The paper attributes this spread
+mainly to two factors discussed further below: how far along
+developers were in ramping up on the tool when a given identifier was
+tackled, and how much of that identifier's code lived in a language,
+such as Dart, that the underlying model handled less well.
+
+\subsection{Developer Experience}
+In post-study interviews, the three developers consistently praised
+three aspects of the system. First, \emph{end-to-end automation} of
+both change discovery and generation gave them a ``continuously
+renewed'' migration backlog rather than a one-time, overwhelming task
+list. They estimated a roughly 50\% reduction in total time spent
+compared with earlier, fully manual migrations, an estimate the
+authors note is directionally consistent with the 74.45\% and 69.46\%
+automation figures, even though no precise wall-clock timing data was
+collected. Second, \emph{automated validation} meant developers no
+longer had to manually kick off and babysit build and test runs
+before deciding whether a change was ready for review. Third, the
+\emph{flexibility of prompting an LLM in natural language} meant the
+same simple instruction worked across several languages and coding
+idioms, removing the burden of maintaining bespoke transformation
+rules for each one.
+
+\subsection{Limitations of the Automated Workflow}
+The system was not without limitations, several of which show up
+directly in the statistics. \emph{Non-determinism}: because repeated
+LLM calls on identical input can produce different diffs, developers
+had mixed reactions, sometimes pleased that a retry eventually
+succeeded, sometimes frustrated by not knowing how many retries would
+be needed before falling back to manual edits. \emph{Context-window
+limits}: very large files sometimes could not be passed to the model
+in their entirety, causing automatic edits to fail outright.
+\emph{Hallucination}: the model sometimes only reformatted a file,
+only added a comment next to an already-correct value, or made
+unrelated edits, none of which counted as a genuine fix. Hallucinated outputs
+ included formatting-only changes, unnecessary comments, and unrelated edits. 
+ However, the Human-Only and Human$\Delta$ proportions should not be interpreted as 
+ hallucination rates, since manual work also resulted from context 
+ limitations, uneven language support, validation failures, and other 
+ workflow constraints. \emph{Uneven language support}: the model
+handled Java, C++, and Python well but had comparatively weak Dart
+support, so identifiers with heavy Dart usage ended up with lower
+LLM$\Delta$ shares. \emph{Ramp-up effects}: early in the study,
+developers were still learning the tool and tackled small, localized
+identifiers largely by hand; as they gained experience they moved on
+to larger, more automation-heavy migrations, which the authors say
+explains much of the variance seen across individual identifiers.
+
+\subsection{Pre-Existing Failures and Production Rollouts}
+Two further sources of friction were largely outside the automated
+pipeline's control. First, every code change at Google is expected to
+pass the relevant regression test suite before submission; if that
+suite already had unrelated, pre-existing failures, the migration's
+own validation step would also report a failure even when the LLM's
+edit was correct, and developers had to separately track down the
+code owners to fix the unrelated failure first. Second, some tests
+store their expected output as a serialized ``golden'' file,
+regenerated by a specialized tool whenever the code under test
+changes. Because the automated pipeline had no way to invoke these
+golden-regeneration tools, any test relying on stored goldens would
+fail the pipeline's test-validation step regardless of whether the
+underlying code change was correct, again pushing that file into the
+manual, Human-Only bucket.
+
+Most of the 39 identifiers were small and localized enough that, once
+submitted, no further coordination was needed. The two largest and
+most widely used identifiers, ID-30 and ID-32, were the exception:
+because their blast radius potentially touched many downstream teams,
+the resulting changes were rolled out to production gradually, with
+affected teams watching for regressions, rather than shipped all at
+once. The automated pipeline offered no direct support for this
+staged-rollout process; it remained a manual, judgment-driven step
+carried out by the developers and code owners together.
