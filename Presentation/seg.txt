@@ -1,0 +1,1343 @@
+% ============================================================
+%  Segment Tree - CSE200 Presentation
+%  Presenters: Shayan, Shuvo, Wasif
+%  Beamer + TikZ + PGFPlots
+% ============================================================
+\documentclass[10pt,aspectratio=169]{beamer}
+
+% ---------- Packages ----------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit,
+                backgrounds, decorations.pathreplacing, shapes.misc,
+                chains, scopes}
+
+% ---------- Theme ----------
+\usetheme{default}
+\useinnertheme{rectangles}
+\setbeamertemplate{navigation symbols}{}
+
+% ---------- Color palette ----------
+\definecolor{navy}{RGB}{25,45,90}
+\definecolor{deepblue}{RGB}{40,80,150}
+\definecolor{midblue}{RGB}{85,130,200}
+\definecolor{lightblue}{RGB}{200,220,240}
+\definecolor{cream}{RGB}{252,246,225}
+\definecolor{gold}{RGB}{200,155,55}
+\definecolor{darkgold}{RGB}{160,120,40}
+\definecolor{accentgreen}{RGB}{45,140,80}
+\definecolor{softgreen}{RGB}{200,235,210}
+\definecolor{warningred}{RGB}{180,50,50}
+\definecolor{softgray}{RGB}{240,240,240}
+\definecolor{codebg}{RGB}{250,248,240}
+\definecolor{codekw}{RGB}{25,45,120}
+\definecolor{codecm}{RGB}{100,120,100}
+\definecolor{codestr}{RGB}{160,80,40}
+
+\setbeamercolor{title}{fg=navy}
+\setbeamercolor{subtitle}{fg=deepblue}
+\setbeamercolor{frametitle}{fg=white, bg=navy}
+\setbeamercolor{structure}{fg=deepblue}
+\setbeamercolor{normal text}{fg=black!85}
+\setbeamercolor{item}{fg=deepblue}
+\setbeamercolor{block title}{bg=navy, fg=white}
+\setbeamercolor{block body}{bg=lightblue!30, fg=black!85}
+\setbeamercolor{alerted text}{fg=warningred}
+
+\setbeamerfont{frametitle}{series=\bfseries, size=\large}
+\setbeamerfont{title}{series=\bfseries, size=\Huge}
+\setbeamerfont{subtitle}{series=\normalfont, size=\large}
+
+% Frame title bar with gold underline
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip%
+  \begin{beamercolorbox}[wd=\paperwidth, ht=3.0ex, dp=1.2ex, leftskip=0.5cm, rightskip=0.5cm]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle%
+  \end{beamercolorbox}%
+  {\color{gold}\rule{\paperwidth}{1.1pt}}%
+}
+
+% Footline: course - presenter - page
+\newcommand{\currentpresenter}{}
+\newcommand{\setpresenter}[1]{\renewcommand{\currentpresenter}{#1}}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{\begin{beamercolorbox}[wd=\paperwidth, ht=2.4ex, dp=1.2ex, leftskip=0.5cm, rightskip=0.5cm]{}%
+    \color{navy}\scriptsize \textbf{CSE200} \; $\bullet$ \; Segment Trees \hfill%
+    \textit{\currentpresenter} \hfill%
+    \insertframenumber\,/\,\inserttotalframenumber%
+  \end{beamercolorbox}}%
+}
+
+% ---------- Listings ----------
+\lstdefinestyle{cpp}{
+  language=C++,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecm}\itshape,
+  stringstyle=\color{codestr},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{navy!40},
+  framesep=4pt,
+  numbers=none,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  morekeywords={long, size_t, uint64_t}
+}
+\lstset{style=cpp}
+
+% ---------- TikZ styles ----------
+\tikzset{
+  segnode/.style={
+    draw=navy, thick, fill=lightblue!50, rounded corners=2pt,
+    minimum width=1.15cm, minimum height=0.65cm, align=center,
+    font=\scriptsize, inner sep=1pt
+  },
+  segleaf/.style={
+    draw=navy, thick, fill=cream,
+    minimum width=0.75cm, minimum height=0.65cm, align=center,
+    font=\scriptsize, inner sep=1pt
+  },
+  segfull/.style={
+    draw=accentgreen, ultra thick, fill=softgreen
+  },
+  segpath/.style={
+    draw=gold, ultra thick, fill=gold!25
+  },
+  segskip/.style={
+    draw=warningred!70, thick, fill=warningred!10, text=warningred!80
+  },
+  segedge/.style={draw=navy!60, thick},
+  segedgeactive/.style={draw=gold, ultra thick},
+  arrbox/.style={
+    draw=navy, thick, minimum width=0.75cm, minimum height=0.75cm,
+    font=\small, fill=lightblue!40
+  },
+  arridx/.style={font=\tiny, text=navy!70}
+}
+
+% ---------- Presenter badge command ----------
+\newcommand{\presenterbadge}[1]{%
+  \begin{tikzpicture}[baseline=(x.base), overlay, remember picture]
+    \node[anchor=north east, xshift=-0.5cm, yshift=-0.5cm, rounded corners=3pt,
+          fill=gold, text=navy, font=\scriptsize\bfseries,
+          inner sep=3pt] (x) at (current page.north east) {Presenter: #1};
+  \end{tikzpicture}%
+}
+
+% Common formatting shortcuts
+\newcommand{\bignav}[1]{\textcolor{navy}{\textbf{#1}}}
+\newcommand{\bigacc}[1]{%
+  \textcolor{accentgreen}{\ifmmode\boldsymbol{#1}\else\textbf{#1}\fi}%
+}
+\newcommand{\bigwarn}[1]{\textcolor{warningred}{\textbf{#1}}}
+
+% ============================================================
+\title{\textbf{Segment Tree}}
+\subtitle{Fast Range Queries and Dynamic Updates}
+\author{Shayan \quad Shuvo \quad Wasif}
+\institute{CSE200 --- Data Structures \& Algorithms}
+\date{}
+
+\begin{document}
+
+% ============================================================
+% SLIDE 1 -- TITLE
+% ============================================================
+{
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture, overlay]
+    % Background band
+    \fill[navy] (current page.north west) rectangle ([yshift=-2.5cm]current page.north east);
+    \fill[gold] ([yshift=-2.55cm]current page.north west) rectangle ([yshift=-2.65cm]current page.north east);
+
+    % Title text
+    \node[anchor=north west, text=white, font=\Huge\bfseries] at ([xshift=1cm, yshift=-0.8cm]current page.north west)
+      {Segment Tree};
+    \node[anchor=north west, text=cream, font=\large\itshape] at ([xshift=1cm, yshift=-1.9cm]current page.north west)
+      {Fast Range Queries and Dynamic Updates};
+
+    % Small tree emblem right side
+    \begin{scope}[shift={([xshift=-3cm, yshift=-1.5cm]current page.north east)}, scale=0.55, every node/.style={transform shape}]
+      \node[segnode, fill=gold!50, draw=cream, text=navy] (r) at (0,0) {[1,4]};
+      \node[segnode, fill=lightblue!70, draw=cream, text=navy] (l1) at (-1.6,-1.2) {[1,2]};
+      \node[segnode, fill=lightblue!70, draw=cream, text=navy] (r1) at (1.6,-1.2) {[3,4]};
+      \node[segleaf, draw=cream, text=navy] (a) at (-2.3,-2.4) {2};
+      \node[segleaf, draw=cream, text=navy] (b) at (-0.9,-2.4) {1};
+      \node[segleaf, draw=cream, text=navy] (c) at (0.9,-2.4) {5};
+      \node[segleaf, draw=cream, text=navy] (d) at (2.3,-2.4) {3};
+      \draw[draw=cream, thick] (r) -- (l1);
+      \draw[draw=cream, thick] (r) -- (r1);
+      \draw[draw=cream, thick] (l1) -- (a);
+      \draw[draw=cream, thick] (l1) -- (b);
+      \draw[draw=cream, thick] (r1) -- (c);
+      \draw[draw=cream, thick] (r1) -- (d);
+    \end{scope}
+
+    % Course and presenters
+    \node[anchor=south west, text=navy, font=\large\bfseries] at ([xshift=1cm, yshift=3.2cm]current page.south west)
+      {CSE200 --- Data Structures \& Algorithms};
+    \node[anchor=south west, text=deepblue, font=\normalsize] at ([xshift=1cm, yshift=2.7cm]current page.south west)
+      {A university-level presentation};
+
+    % Presenter block
+    \node[anchor=south west, draw=navy, fill=lightblue!30, rounded corners=4pt,
+          minimum width=13cm, minimum height=1.6cm, inner sep=8pt] (pbox)
+          at ([xshift=1cm, yshift=0.8cm]current page.south west) {};
+    \node[anchor=north west, text=navy, font=\small\bfseries] at ([xshift=0.2cm, yshift=-0.15cm]pbox.north west)
+      {Presented by};
+    \node[anchor=south west, text=navy, font=\normalsize] at ([xshift=0.2cm, yshift=0.15cm]pbox.south west)
+      {\textbf{Shayan} \;$\bullet$\; \textbf{Shuvo} \;$\bullet$\; \textbf{Wasif}};
+
+    % Gold bar bottom
+    \fill[gold] ([yshift=0.5cm]current page.south west) rectangle ([yshift=0.6cm]current page.south east);
+  \end{tikzpicture}
+\end{frame}
+}
+
+% ============================================================
+% PART I -- FUNDAMENTALS (Shayan)
+% ============================================================
+\setpresenter{Shayan --- Fundamentals}
+\section{Part I --- Motivation \& Fundamentals}
+
+% ---------------- SLIDE 2: THE PROBLEM ----------------
+\begin{frame}{The Problem: Ranges Under Pressure}
+\vspace{-0.15cm}
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\small
+Given an array
+\[
+A = [\,2,\ 1,\ 5,\ 3,\ 7,\ 4,\ 6,\ 8\,]
+\]
+answer a stream of interleaved operations:
+\vspace{0.15cm}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item \bignav{\texttt{sum(l,r)}} --- sum of $A[l..r]$
+  \item \bignav{\texttt{update(i,v)}} --- assign $A[i] \gets v$
+  \item \bignav{\texttt{sum(l,r)}} --- again, on the updated array
+  \item \dots\ many times \dots
+\end{itemize}
+\vspace{0.2cm}
+\begin{block}{The tension}
+Queries want the array to \textit{look pre-computed}.\\
+Updates keep changing it.
+\end{block}
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.9, every node/.style={transform shape}]
+  \foreach \v [count=\i from 1] in {2,1,5,3,7,4,6,8}{
+    \node[arrbox] (a\i) at (\i*0.8, 0) {\v};
+    \node[arridx] at (\i*0.8, -0.55) {\i};
+  }
+  \node[font=\tiny, text=navy!70] at (4, -0.95) {index (1-based)};
+
+  % annotate sum(3,6)
+  \draw[decorate, decoration={brace, amplitude=5pt}, gold, ultra thick]
+    (2.4-0.35,0.5) -- (4.8+0.35,0.5)
+    node[midway, above=6pt, font=\scriptsize\bfseries, text=darkgold]{sum(3,6) = 19};
+
+  % update A[4] = 10
+  \node[font=\scriptsize, text=warningred] at (4.55, -1.5) {update(4, 10)};
+  \draw[->, warningred, thick] (4.55, -1.35) -- (a4.south);
+\end{tikzpicture}
+\vspace{0.3cm}
+
+\small
+\textbf{Naive answers}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Query by scanning: $O(n)$ each.
+  \item $q$ queries $\Rightarrow$ $O(nq)$ total.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 3: WHY EXISTING METHODS STRUGGLE ----------------
+\begin{frame}{Why Existing Methods Struggle}
+\small
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Approach} & \textbf{Range query} & \textbf{Point update} & \textbf{Where it breaks} \\
+\midrule
+Naive array         & $O(n)$    & $O(1)$    & Queries too slow when frequent. \\
+Prefix sums (static)& $O(1)$    & $O(n)$    & Every update rebuilds the prefixes. \\
+Fenwick tree (BIT)  & $O(\log n)$ & $O(\log n)$ & Great for prefix sums; limited node state. \\
+\rowcolor{lightblue!35}
+\textbf{Segment tree} & $\boldsymbol{O(\log n)}$ & $\boldsymbol{O(\log n)}$ & Flexible node state, richer merges, lazy updates. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.35cm}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\begin{block}{Trade-off}
+Structures that make \textbf{queries} cheap tend to make \textbf{updates} expensive, and vice versa.
+
+\medskip
+Segment trees strike a balance: \textbf{both} in $O(\log n)$ for a wide class of aggregations.
+\end{block}
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\scriptsize}]
+  \draw[->, thick, navy] (0,0) -- (5.5,0) node[right] {Update cost};
+  \draw[->, thick, navy] (0,0) -- (0,4) node[above] {Query cost};
+  \fill[warningred] (4.5, 0.3) circle (3pt) node[right, text=warningred]{Prefix sum};
+  \fill[warningred] (0.3, 3.5) circle (3pt) node[right, text=warningred]{Naive};
+  \fill[accentgreen] (1.8, 1.8) circle (3.5pt) node[above right, text=accentgreen]{\textbf{Segment tree}};
+  \fill[deepblue] (1.6, 1.6) circle (3pt) node[below left, text=deepblue]{Fenwick};
+\end{tikzpicture}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 4: COMPLEXITY GRAPH ----------------
+\begin{frame}{Asymptotic Growth of Common Complexities}
+\small \emph{These are theoretical growth curves --- not measured runtimes.}
+\vspace{-0.2cm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=11cm, height=6.1cm,
+  xlabel={Input size $n$ (log scale, base 2)},
+  ylabel={Relative operations},
+  xmode=log, log basis x=2,
+  ymode=log, log basis y=10,
+  xmin=2, xmax=1024,
+  ymin=0.8, ymax=20000,
+  grid=both,
+  major grid style={line width=.2pt, draw=gray!40},
+  minor grid style={line width=.1pt, draw=gray!20},
+  legend style={at={(1.02,1)}, anchor=north west, font=\scriptsize, draw=navy!40},
+  every axis label/.append style={font=\scriptsize},
+  tick label style={font=\tiny},
+  title style={font=\scriptsize, text=navy},
+]
+\addplot[thick, deepblue, domain=2:1024, samples=40, mark=none] {1};
+\addlegendentry{$O(1)$}
+\addplot[thick, accentgreen, domain=2:1024, samples=40, mark=none] {ln(x)/ln(2)};
+\addlegendentry{$O(\log n)$}
+\addplot[thick, gold, domain=2:1024, samples=40, mark=none] {x};
+\addlegendentry{$O(n)$}
+\addplot[thick, warningred, domain=2:1024, samples=40, mark=none, dashed] {x*ln(x)/ln(2)};
+\addlegendentry{$O(n \log n)$}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.1cm}
+\begin{center}\scriptsize
+Normalized to unit costs: $1$, \; $\log_2 n$, \; $n$, \; $n\log_2 n$. \quad
+\textcolor{accentgreen}{$\log_2 n$ grows glacially --- e.g.\ $\log_2 (10^9) \approx 30$.}
+\end{center}
+\end{frame}
+
+% ---------------- SLIDE 5: CORE IDEA ----------------
+\begin{frame}{Core Idea --- Divide the Array into Intervals}
+\small
+Store a \bignav{summary} of each interval at a tree node; queries \textbf{glue} summaries together.
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.95, every node/.style={transform shape, font=\scriptsize}]
+  % Level 0
+  \draw[navy, thick, fill=lightblue!60] (0,3.6) rectangle (12,4.3);
+  \node at (6, 3.95) {\textbf{Interval [1,8]} --- one summary};
+  % Level 1
+  \draw[navy, thick, fill=lightblue!45] (0,2.6) rectangle (6,3.3);
+  \node at (3, 2.95) {\textbf{[1,4]}};
+  \draw[navy, thick, fill=lightblue!45] (6,2.6) rectangle (12,3.3);
+  \node at (9, 2.95) {\textbf{[5,8]}};
+  % Level 2
+  \foreach \i/\l/\r in {0/1/2, 3/3/4, 6/5/6, 9/7/8}{
+    \draw[navy, thick, fill=lightblue!30] (\i,1.6) rectangle (\i+3,2.3);
+    \node at (\i+1.5, 1.95) {[\l,\r]};
+  }
+  % Leaves (values)
+  \foreach \i/\v/\idx in {0/2/1, 1.5/1/2, 3/5/3, 4.5/3/4, 6/7/5, 7.5/4/6, 9/6/7, 10.5/8/8}{
+    \draw[navy, thick, fill=cream] (\i,0.4) rectangle (\i+1.5,1.1);
+    \node at (\i+0.75, 0.75) {\textbf{\v}};
+    \node[font=\tiny, text=navy!70] at (\i+0.75, 0.15) {\idx};
+  }
+  % Braces on right
+  \node[font=\tiny, text=navy!70, anchor=west] at (12.2, 3.95) {level 0};
+  \node[font=\tiny, text=navy!70, anchor=west] at (12.2, 2.95) {level 1};
+  \node[font=\tiny, text=navy!70, anchor=west] at (12.2, 1.95) {level 2};
+  \node[font=\tiny, text=navy!70, anchor=west] at (12.2, 0.75) {leaves};
+\end{tikzpicture}
+\end{center}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Each node covers a contiguous interval; children split it in half.
+  \item Tree height $= \lceil \log_2 n \rceil$; total nodes $\leq 4n$ (safe allocation).
+  \item Any interval $[l,r]$ decomposes into at most $O(\log n)$ tree segments.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 6: COMPLETE SEGMENT TREE ----------------
+\begin{frame}{Complete Segment Tree for $A=[2,1,5,3,7,4,6,8]$}
+\vspace{-0.15cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.92, every node/.style={transform shape}]
+  % Root
+  \node[segnode] (n1) at (7, 6) {[1,8]\\ \textbf{36}};
+  % Level 1
+  \node[segnode] (n2) at (3.5, 4.5) {[1,4]\\ \textbf{11}};
+  \node[segnode] (n3) at (10.5, 4.5) {[5,8]\\ \textbf{25}};
+  % Level 2
+  \node[segnode] (n4) at (1.7, 3) {[1,2]\\ \textbf{3}};
+  \node[segnode] (n5) at (5.3, 3) {[3,4]\\ \textbf{8}};
+  \node[segnode] (n6) at (8.7, 3) {[5,6]\\ \textbf{11}};
+  \node[segnode] (n7) at (12.3, 3) {[7,8]\\ \textbf{14}};
+  % Leaves
+  \node[segleaf] (l1) at (0.8, 1.3) {2};
+  \node[segleaf] (l2) at (2.6, 1.3) {1};
+  \node[segleaf] (l3) at (4.4, 1.3) {5};
+  \node[segleaf] (l4) at (6.2, 1.3) {3};
+  \node[segleaf] (l5) at (7.8, 1.3) {7};
+  \node[segleaf] (l6) at (9.6, 1.3) {4};
+  \node[segleaf] (l7) at (11.4, 1.3) {6};
+  \node[segleaf] (l8) at (13.2, 1.3) {8};
+  % Edges
+  \foreach \a/\b in {n1/n2, n1/n3, n2/n4, n2/n5, n3/n6, n3/n7,
+                     n4/l1, n4/l2, n5/l3, n5/l4, n6/l5, n6/l6, n7/l7, n7/l8}
+    \draw[segedge] (\a) -- (\b);
+  % Bottom index annotations
+  \foreach \x/\i in {0.8/1, 2.6/2, 4.4/3, 6.2/4, 7.8/5, 9.6/6, 11.4/7, 13.2/8}
+    \node[font=\tiny, text=navy!70] at (\x, 0.75) {\i};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.1cm}
+\centering \scriptsize
+Total $=36$, \; and every internal value is the sum of its two children.
+\hfill \tiny (Verify: $11+25=36$, \; $3+8=11$, \; $11+14=25$.)
+\end{frame}
+
+% ---------------- SLIDE 7: ITEM + MERGE ABSTRACTION ----------------
+\begin{frame}[fragile]{What Does a Node Store? --- \texttt{Item} + \texttt{merge}}
+\small
+A segment tree is best understood as a \bignav{framework}: two ingredients specialize it to any problem.
+\vspace{0.15cm}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\begin{lstlisting}
+struct Item {
+    long long sum = 0;   // info per interval
+};
+
+Item merge(const Item& a, const Item& b) {
+    return { a.sum + b.sum };
+}
+
+// Identity for empty ranges
+Item identity() { return { 0 }; }
+\end{lstlisting}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{block}{The two ingredients}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item \textbf{Item}: the summary a node stores.
+  \item \textbf{merge}: how to combine two adjacent summaries.
+\end{itemize}
+\end{block}
+\vspace{0.1cm}
+\begin{block}{Why this matters}
+\small Swap \texttt{Item} and \texttt{merge}, and the \emph{same} algorithms work for sums, mins, maxes, gcds, XORs, matrix products, etc. \\[2pt]
+The \emph{tree} is invariant; only the algebra changes.
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 8: CONSTRUCTION ----------------
+\begin{frame}[fragile]{Construction --- Linear Time}
+\small
+Build recursively: build left child, build right child, merge them at the root.
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\begin{lstlisting}
+// t[]: segment tree array, a[]: input
+// node covers interval [l, r]  (1-based)
+void build(int node, int l, int r) {
+    if (l == r) {
+        t[node] = Item{ a[l] };  // leaf
+        return;
+    }
+    int mid = l + (r - l) / 2;
+    build(2*node,     l,     mid);
+    build(2*node + 1, mid+1, r  );
+    t[node] = merge(t[2*node], t[2*node+1]);
+}
+\end{lstlisting}
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{block}{Recurrence}
+\[
+T(n) = 2\,T(n/2) + O(1) \;\;\Longrightarrow\;\; T(n) = \bigacc{O(n)}
+\]
+\end{block}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Roughly $2n-1$ nodes total; each node does $O(1)$ work.
+  \item Storage: allocate $4n$ to be safe for non-power-of-two $n$.
+  \item Height: $\lceil \log_2 n \rceil$.
+\end{itemize}
+\alert{Not $O(n\log n)$} --- despite the tree having $\log n$ levels, the total node count is $\Theta(n)$.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+% PART II -- OPERATIONS (Shuvo)
+% ============================================================
+\setpresenter{Shuvo --- Operations}
+\section{Part II --- Queries \& Updates}
+
+% ---------------- SLIDE 9: THREE CASES ----------------
+\begin{frame}[fragile]{Range Query --- The Three Cases}
+\small
+When we recurse on a node covering interval $[l,r]$ with query range $[ql,qr]$:
+\vspace{0.1cm}
+\begin{columns}[T]
+% CASE 1
+\begin{column}{0.33\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\scriptsize}]
+  \draw[navy, thick, fill=lightblue!20] (0,0) rectangle (4,0.6);
+  \node at (2, 0.3) {node $[l,r]$};
+  \draw[warningred, ultra thick, fill=warningred!30] (4.3,0) rectangle (5.5,0.6);
+  \node[text=warningred] at (4.9, 0.3) {$[ql,qr]$};
+\end{tikzpicture}
+\end{center}
+\textbf{Case 1: No overlap}\\
+Return \textbf{identity}: \\
+$0$ for sum, $+\infty$ for min, etc.
+\end{column}
+% CASE 2
+\begin{column}{0.33\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\scriptsize}]
+  \draw[gold, ultra thick, dashed] (-0.3, -0.15) rectangle (4.3, 0.75);
+  \draw[accentgreen, ultra thick, fill=softgreen] (0,0) rectangle (4,0.6);
+  \node at (2, 0.3) {node $[l,r]$};
+  \node[text=darkgold] at (2, -0.5) {$[ql,qr] \supseteq [l,r]$};
+\end{tikzpicture}
+\end{center}
+\textbf{Case 2: Full overlap}\\
+Return the \textbf{stored} \\
+value at this node.
+\end{column}
+% CASE 3
+\begin{column}{0.33\textwidth}
+\begin{center}
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\scriptsize}]
+  \draw[navy, thick, fill=lightblue!20] (0,0) rectangle (4,0.6);
+  \node at (2, 0.3) {node $[l,r]$};
+  \draw[gold, ultra thick, dashed] (1.2, -0.15) rectangle (3.2, 0.75);
+  \node[text=darkgold] at (2.2, -0.5) {partial};
+\end{tikzpicture}
+\end{center}
+\textbf{Case 3: Partial overlap}\\
+\textbf{Recurse} on both children, \\
+then \texttt{merge} the results.
+\end{column}
+\end{columns}
+
+\vspace{0.4cm}
+\begin{lstlisting}
+Item query(int node, int l, int r, int ql, int qr) {
+    if (qr < l || r < ql)      return identity();          // Case 1
+    if (ql <= l && r <= qr)    return t[node];             // Case 2
+    int mid = l + (r - l) / 2;
+    return merge( query(2*node,   l,     mid, ql, qr),
+                  query(2*node+1, mid+1, r,   ql, qr) );   // Case 3
+}
+\end{lstlisting}
+\end{frame}
+
+% ---------------- SLIDE 10: QUERY STEP-BY-STEP ----------------
+\begin{frame}{Query Walk-through --- \texttt{sum(3,7)}}
+\vspace{-0.15cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
+  % Root
+  \node[segnode] (n1) at (7, 6) {[1,8]\\ 36};
+  % Level 1
+  \node[segnode] (n2) at (3.5, 4.5) {[1,4]\\ 11};
+  \node[segnode] (n3) at (10.5, 4.5) {[5,8]\\ 25};
+  % Level 2
+  \node[segnode] (n4) at (1.7, 3) {[1,2]\\ 3};
+  \node[segnode] (n5) at (5.3, 3) {[3,4]\\ 8};
+  \node[segnode] (n6) at (8.7, 3) {[5,6]\\ 11};
+  \node[segnode] (n7) at (12.3, 3) {[7,8]\\ 14};
+  % Leaves
+  \node[segleaf] (l7) at (11.4, 1.3) {6};
+  \node[segleaf] (l8) at (13.2, 1.3) {8};
+  \foreach \a/\b in {n1/n2, n1/n3, n2/n4, n2/n5, n3/n6, n3/n7, n7/l7, n7/l8}
+    \draw[segedge] (\a) -- (\b);
+
+  % Overlays
+  \only<2->{\node[segnode, segpath] at (7, 6) {[1,8]\\ 36};}
+  \only<3->{\node[segnode, segpath] at (3.5, 4.5) {[1,4]\\ 11};
+            \node[segnode, segpath] at (10.5, 4.5) {[5,8]\\ 25};}
+  \only<4->{\node[segnode, segskip] at (1.7, 3) {[1,2]\\ skip};}
+  \only<5->{\node[segnode, segfull] at (5.3, 3) {[3,4]\\ \textbf{+8}};}
+  \only<6->{\node[segnode, segfull] at (8.7, 3) {[5,6]\\ \textbf{+11}};}
+  \only<7->{\node[segnode, segpath] at (12.3, 3) {[7,8]\\ 14};}
+  \only<8->{\node[segleaf, segfull] at (11.4, 1.3) {\textbf{+6}};
+            \node[segleaf, segskip] at (13.2, 1.3) {skip};}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.1cm}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item<3-> Split at root: left half has $[3,4]$; right half has $[5,7]$.
+  \item<4-> \textcolor{warningred}{$[1,2]$}: disjoint from $[3,7]$ $\Rightarrow$ contributes $0$.
+  \item<5-> \textcolor{accentgreen}{$[3,4]$}: fully inside $[3,7]$ $\Rightarrow$ take stored value $\mathbf{8}$.
+  \item<6-> \textcolor{accentgreen}{$[5,6]$}: fully inside $\Rightarrow$ take $\mathbf{11}$.
+  \item<7-> $[7,8]$: partial, so recurse.
+  \item<8-> $[7,7]$: fully inside $\Rightarrow$ take $\mathbf{6}$; $[8,8]$: disjoint $\Rightarrow$ $0$.
+  \item<9-> \textbf{Total} $= 8 + 11 + 6 = \bigacc{25}$ \hfill \scriptsize (verify: $A[3..7] = 5+3+7+4+6 = 25$)
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 11: WHY QUERY IS O(LOG N) ----------------
+\begin{frame}{Why Range Query is $O(\log n)$}
+\small
+It is \bigwarn{not} enough to say ``the tree has height $\log n$''. A query can visit \emph{many} nodes; we must bound how many.
+\vspace{0.15cm}
+
+\begin{block}{Canonical decomposition argument}
+Any range $[ql,qr]$ decomposes into a set of maximal tree intervals fully contained in $[ql,qr]$. On each level of the tree, \textbf{at most $\mathbf{2}$} maximal intervals are chosen (one near each boundary of $[ql,qr]$). Hence:
+\[
+\text{nodes visited} \;\leq\; 2 \cdot (\text{height}) + O(1) \;=\; O(\log n).
+\]
+\end{block}
+
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item ``Fully inside'' nodes contribute value and \emph{stop} recursing.
+  \item Only nodes \emph{straddling} a boundary of $[ql,qr]$ recurse further.
+  \item Two boundaries $\Rightarrow$ at most two recursion paths $\Rightarrow$ $O(\log n)$ nodes.
+\end{itemize}
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\tiny}]
+  \foreach \x in {0,...,15} {
+    \draw[lightblue!50, thick, fill=lightblue!30] (\x*0.5, 0) rectangle (\x*0.5+0.5, 0.4);
+  }
+  \draw[gold, ultra thick] (1.5,-0.1) rectangle (6.5, 0.5);
+  \node[text=darkgold] at (4, -0.4) {query range};
+  \foreach \x/\w/\c in {1.5/1/gold, 2.5/2/accentgreen, 4.5/2/accentgreen, 6.5/-0.5/gold}{}
+  \draw[accentgreen, ultra thick] (2.5, 0.6) rectangle (4.5, 1);
+  \node[text=accentgreen] at (3.5, 1.3) {maximal covered};
+  \draw[accentgreen, ultra thick] (4.5, 0.6) rectangle (6.5, 1);
+\end{tikzpicture}\\[0.2cm]
+\scriptsize The query breaks into a few maximal intervals plus $O(\log n)$ boundary work.
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 12: POINT UPDATE ----------------
+\begin{frame}{Point Update --- \texttt{A[4] = 10}}
+\vspace{-0.15cm}
+\small Only nodes whose interval \emph{contains} index $4$ need recomputation: the path from leaf to root.
+\begin{center}
+\begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
+  \node[segnode] (n1) at (7, 6) {[1,8]\\ 36};
+  \node[segnode] (n2) at (3.5, 4.5) {[1,4]\\ 11};
+  \node[segnode] (n3) at (10.5, 4.5) {[5,8]\\ 25};
+  \node[segnode] (n4) at (1.7, 3) {[1,2]\\ 3};
+  \node[segnode] (n5) at (5.3, 3) {[3,4]\\ 8};
+  \node[segnode] (n6) at (8.7, 3) {[5,6]\\ 11};
+  \node[segnode] (n7) at (12.3, 3) {[7,8]\\ 14};
+  \node[segleaf] (l3) at (4.4, 1.3) {5};
+  \node[segleaf] (l4) at (6.2, 1.3) {3};
+  \foreach \a/\b in {n1/n2, n1/n3, n2/n4, n2/n5, n3/n6, n3/n7, n5/l3, n5/l4}
+    \draw[segedge] (\a) -- (\b);
+
+  % updated path (final overlay)
+  \only<2->{
+    \node[segleaf, segpath] at (6.2, 1.3) {\textbf{10}};
+    \draw[segedgeactive] (n5) -- (l4);
+  }
+  \only<3->{
+    \node[segnode, segpath] at (5.3, 3) {[3,4]\\ \textbf{15}};
+    \draw[segedgeactive] (n2) -- (n5);
+  }
+  \only<4->{
+    \node[segnode, segpath] at (3.5, 4.5) {[1,4]\\ \textbf{18}};
+    \draw[segedgeactive] (n1) -- (n2);
+  }
+  \only<5->{
+    \node[segnode, segpath] at (7, 6) {[1,8]\\ \textbf{43}};
+  }
+\end{tikzpicture}
+\end{center}
+\vspace{-0.1cm}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item<2-> Leaf $A[4]$: $3 \to 10$.
+  \item<3-> $[3,4]$: $8 \to 15$ \; ($5+10$).
+  \item<4-> $[1,4]$: $11 \to 18$ \; ($3+15$).
+  \item<5-> Root $[1,8]$: $36 \to 43$ \; ($18+25$). \; Only $\bigacc{O(\log n)}$ nodes touched.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 13: C++ IMPLEMENTATION ----------------
+\begin{frame}[fragile]{Recursive C++ Implementation}
+\small \emph{Convention: 1-based array \& tree indices; each node covers $[l,r]$.}
+\begin{lstlisting}
+struct Item { long long sum = 0; };
+Item merge(const Item& a, const Item& b) { return { a.sum + b.sum }; }
+Item identity() { return { 0 }; }
+
+const int N = 1 << 17;      // e.g. n <= 1e5
+Item  t[4 * N];
+long long a[N + 1];
+
+void build(int node, int l, int r) {
+    if (l == r) { t[node] = { a[l] }; return; }
+    int mid = l + (r - l) / 2;
+    build(2*node, l, mid);  build(2*node + 1, mid + 1, r);
+    t[node] = merge(t[2*node], t[2*node + 1]);
+}
+void update(int node, int l, int r, int i, long long v) {
+    if (l == r) { t[node] = { v }; return; }
+    int mid = l + (r - l) / 2;
+    if (i <= mid) update(2*node,     l,     mid, i, v);
+    else          update(2*node + 1, mid+1, r,   i, v);
+    t[node] = merge(t[2*node], t[2*node + 1]);
+}
+Item query(int node, int l, int r, int ql, int qr) {
+    if (qr < l || r < ql)    return identity();
+    if (ql <= l && r <= qr)  return t[node];
+    int mid = l + (r - l) / 2;
+    return merge(query(2*node,     l,     mid, ql, qr),
+                 query(2*node + 1, mid+1, r,   ql, qr));
+}
+\end{lstlisting}
+\end{frame}
+
+% ---------------- SLIDE 14: DRY RUN ----------------
+\begin{frame}{Dry Run --- Query, then Update, then Query Again}
+\small
+Starting array (1-based): $A=[2,1,5,3,7,4,6,8]$, total $=36$.
+\vspace{0.15cm}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\begin{block}{Step 1 --- \texttt{sum(3,6)}}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item $[1,8]$: partial, recurse
+  \item $[1,4]$: partial, recurse
+  \begin{itemize}\setlength{\itemsep}{0pt}
+    \item $[1,2]$: disjoint $\to 0$
+    \item $[3,4]$: full $\to \mathbf{8}$
+  \end{itemize}
+  \item $[5,8]$: partial, recurse
+  \begin{itemize}\setlength{\itemsep}{0pt}
+    \item $[5,6]$: full $\to \mathbf{11}$
+    \item $[7,8]$: disjoint $\to 0$
+  \end{itemize}
+  \item \textbf{Result: $8 + 11 = \bigacc{19}$} \\
+        \scriptsize check: $5+3+7+4 = 19$ \checkmark
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{block}{Step 2 --- \texttt{update(4, 10)}}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Path: leaf$[4] \to [3,4] \to [1,4] \to [1,8]$
+  \item Leaf $A[4]$: $3 \to 10$
+  \item $[3,4]$: $8 \to \mathbf{15}$
+  \item $[1,4]$: $11 \to \mathbf{18}$
+  \item Root: $36 \to \mathbf{43}$
+\end{itemize}
+\end{block}
+\begin{block}{Step 3 --- \texttt{sum(3,6)} on updated array}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item $[3,4]$: full $\to \mathbf{15}$
+  \item $[5,6]$: full $\to \mathbf{11}$
+  \item \textbf{Result: $15+11=\bigacc{26}$}\\
+        \scriptsize check: $5+10+7+4 = 26$ \checkmark
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+% PART III -- GENERALIZATION AND ADVANCED (Wasif)
+% ============================================================
+\setpresenter{Wasif --- Generalization \& Advanced}
+\section{Part III --- Generalization, Lazy Propagation \& Variants}
+
+% ---------------- SLIDE 15: GENERALIZATION TABLE ----------------
+\begin{frame}{The Same Tree, Many Problems}
+\small Change only \texttt{Item} and \texttt{merge} --- reuse everything else.
+\vspace{0.1cm}
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Problem} & \textbf{Item stores} & \textbf{merge$(a,b)$} & \textbf{Identity} \\
+\midrule
+Range sum      & \texttt{sum}       & $a.\text{sum} + b.\text{sum}$              & $0$ \\
+Range minimum  & \texttt{mn}        & $\min(a.\text{mn}, b.\text{mn})$          & $+\infty$ \\
+Range maximum  & \texttt{mx}        & $\max(a.\text{mx}, b.\text{mx})$          & $-\infty$ \\
+Range GCD      & \texttt{g}         & $\gcd(a.\text{g}, b.\text{g})$            & $0$ \\
+Range XOR      & \texttt{x}         & $a.\text{x} \oplus b.\text{x}$             & $0$ \\
+Count of a value & \texttt{cnt}     & $a.\text{cnt} + b.\text{cnt}$              & $0$ \\
+Matrix product & $2{\times}2$ matrix& matrix multiply (non-commutative!)         & Identity matrix \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{0.15cm}
+\begin{block}{Identity element = ``the empty answer''}
+Needed so \texttt{Case 1: no overlap} can return something merge-neutral:\\
+\centering
+$\texttt{merge}(x, \mathbf{e}) = \texttt{merge}(\mathbf{e}, x) = x$ \; for all $x$.
+\end{block}
+\end{frame}
+
+% ---------------- SLIDE 16: ASSOCIATIVITY ----------------
+\begin{frame}{Why \texttt{merge} Must Be Associative}
+\small
+The tree groups intervals \emph{differently} on different queries. If \texttt{merge} is associative, all groupings yield the same answer.
+\vspace{0.2cm}
+\[
+\texttt{merge}\bigl(\texttt{merge}(a, b),\, c\bigr) \;=\; \texttt{merge}\bigl(a,\, \texttt{merge}(b, c)\bigr)
+\]
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.9, every node/.style={transform shape, font=\scriptsize}]
+  % Grouping 1
+  \node[segnode] at (0,1.5) {a};  \node[segnode] at (1,1.5) {b};  \node[segnode] at (2,1.5) {c};
+  \draw[gold, ultra thick] (-0.3, 1.1) rectangle (1.3, 1.9);
+  \node[text=darkgold] at (0.5, 2.2) {merge $(a,b)$};
+  \draw[accentgreen, ultra thick] (-0.4, 1.0) rectangle (2.3, 2.0);
+  \node[text=accentgreen] at (1.0, 2.5) {then with $c$};
+
+  \node at (3.5, 1.5) {\large $=$};
+
+  % Grouping 2
+  \node[segnode] at (5,1.5) {a};  \node[segnode] at (6,1.5) {b};  \node[segnode] at (7,1.5) {c};
+  \draw[gold, ultra thick] (5.7, 1.1) rectangle (7.3, 1.9);
+  \node[text=darkgold] at (6.5, 2.2) {merge $(b,c)$};
+  \draw[accentgreen, ultra thick] (4.7, 1.0) rectangle (7.4, 2.0);
+  \node[text=accentgreen] at (6.0, 2.5) {then with $a$};
+\end{tikzpicture}
+\end{center}
+\vspace{0.1cm}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item Sum, min, max, gcd, xor, matrix product $-$ all associative. \checkmark
+  \item Commutativity is \emph{not} required (matrix multiplication is not commutative but still works).
+  \item Some segment-tree \emph{variants} (e.g.\ persistent, dynamic, merge-sort trees) relax or refine the algebraic requirements --- but ordinary range-aggregate queries rely on associativity.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 17: COMPARISON GRAPHS ----------------
+\begin{frame}{Complexity Comparison --- Range Query \& Point Update}
+\vspace{-0.15cm}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\centering \scriptsize \textbf{Range query cost vs $n$}\\
+\begin{tikzpicture}
+\begin{axis}[
+  width=6.4cm, height=4.4cm,
+  xlabel={$n$}, ylabel={ops},
+  xmode=log, log basis x=2, ymode=log,
+  xmin=2, xmax=1024, ymin=0.5, ymax=2000,
+  grid=both, legend style={font=\tiny, at={(0.02,0.98)}, anchor=north west, draw=navy!30},
+  every axis label/.append style={font=\tiny},
+  tick label style={font=\tiny},
+]
+\addplot[thick, warningred, domain=2:1024, samples=40] {x};
+\addlegendentry{Naive $O(n)$}
+\addplot[thick, accentgreen, domain=2:1024, samples=40] {ln(x)/ln(2)};
+\addlegendentry{Fenwick $O(\log n)$}
+\addplot[thick, deepblue, dashed, domain=2:1024, samples=40] {ln(x)/ln(2)*1.4};
+\addlegendentry{Seg.\ tree $O(\log n)$}
+\addplot[thick, gold, domain=2:1024, samples=40] {1};
+\addlegendentry{Prefix (static) $O(1)$}
+\end{axis}
+\end{tikzpicture}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering \scriptsize \textbf{Point update cost vs $n$}\\
+\begin{tikzpicture}
+\begin{axis}[
+  width=6.4cm, height=4.4cm,
+  xlabel={$n$}, ylabel={ops},
+  xmode=log, log basis x=2, ymode=log,
+  xmin=2, xmax=1024, ymin=0.5, ymax=2000,
+  grid=both, legend style={font=\tiny, at={(0.02,0.98)}, anchor=north west, draw=navy!30},
+  every axis label/.append style={font=\tiny},
+  tick label style={font=\tiny},
+]
+\addplot[thick, warningred, domain=2:1024, samples=40] {x};
+\addlegendentry{Prefix rebuild $O(n)$}
+\addplot[thick, accentgreen, domain=2:1024, samples=40] {ln(x)/ln(2)};
+\addlegendentry{Fenwick $O(\log n)$}
+\addplot[thick, deepblue, dashed, domain=2:1024, samples=40] {ln(x)/ln(2)*1.4};
+\addlegendentry{Seg.\ tree $O(\log n)$}
+\addplot[thick, gold, domain=2:1024, samples=40] {1};
+\addlegendentry{Raw array $O(1)$}
+\end{axis}
+\end{tikzpicture}
+\end{column}
+\end{columns}
+\vspace{0.15cm}
+\begin{center}\scriptsize
+Constant factors differ, but asymptotics tell the story: segment tree \& Fenwick tree keep \emph{both} operations logarithmic.\\
+\textcolor{warningred}{Raw array $O(1)$ update discards any precomputed aggregate.}
+\end{center}
+\end{frame}
+
+% ---------------- SLIDE 18: COMPLEXITY MATRIX ----------------
+\begin{frame}{Complexity Matrix (with caveats)}
+\small
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}l c c c c c@{}}
+\toprule
+\textbf{Structure} & \textbf{Build} & \textbf{Range Q.} & \textbf{Point Upd.} & \textbf{Range Upd.} & \textbf{Memory} \\
+\midrule
+Naive array         & $O(n)$        & $O(n)$          & $O(1)$        & $O(n)$              & $O(n)$ \\
+Prefix sum (static) & $O(n)$        & $O(1)$          & $O(n)^{\,\dagger}$ & --- $^{\,\ddagger}$ & $O(n)$ \\
+Sparse table        & $O(n\log n)$  & $O(1)^{\,*}$    & not supported & not supported       & $O(n\log n)$ \\
+Fenwick tree        & $O(n)^{\,\S}$ & $O(\log n)$     & $O(\log n)$   & $O(\log n)^{\,\P}$  & $O(n)$ \\
+\rowcolor{lightblue!35}
+\textbf{Segment tree} & $\boldsymbol{O(n)}$ & $\boldsymbol{O(\log n)}$ & $\boldsymbol{O(\log n)}$ & $\boldsymbol{O(\log n)}^{\,\|}$ & $O(n)$ \\
+Iterative seg.\ tree& $O(n)$        & $O(\log n)$     & $O(\log n)$   & $O(\log n)^{\,\|}$  & $O(n)$ \\
+Persistent seg.\ tree& $O(n)$       & $O(\log n)$     & $O(\log n)^{\,\ast}$ & --- $^{\,\ast\ast}$ & $O(n)+O(\log n)$/upd. \\
+Dynamic seg.\ tree  & $O(1)$        & $O(\log C)$     & $O(\log C)$   & $O(\log C)^{\,\|}$  & $O(m \log C)^{\,\dagger\dagger}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{0.15cm}
+{\tiny
+$\dagger$ Any single update forces prefix recomputation.\;
+$\ddagger$ Range updates conflict with static prefix design (difference-array tricks handle offline range-add).\;
+$*$ Idempotent operations only (min, max, gcd).\;
+$\S$ Linear build with the standard bottom-up trick.\;
+$\P$ Supported for suitable operations (e.g.\ range add + range sum via BIT-of-BIT or difference tricks).\;
+$\|$ Requires a lazy tag that composes cleanly with the aggregate (e.g.\ range-add + range-sum).\;
+$\ast$ Each new version creates $O(\log n)$ new nodes.\;
+$\ast\ast$ Range updates need extra machinery (lazy persistent trees).\;
+$\dagger\dagger$ $m$ = distinct touched positions, $C$ = coordinate range.
+}
+\end{frame}
+
+% ---------------- SLIDE 19: RANGE UPDATE PROBLEM ----------------
+\begin{frame}{Range Updates --- Why the Naive Approach Fails}
+\small
+Consider \texttt{add(2,7,+5)} --- add $5$ to every element in $A[2..7]$.
+\vspace{0.15cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.9, every node/.style={transform shape}]
+  \foreach \v [count=\i from 1] in {2,1,5,3,7,4,6,8}{
+    \node[arrbox] (a\i) at (\i*0.9, 0) {\v};
+    \node[arridx] at (\i*0.9, -0.55) {\i};
+  }
+  \draw[warningred, ultra thick, decorate, decoration={brace, amplitude=6pt}]
+    (1.8-0.4, 0.55) -- (6.3+0.4, 0.55)
+    node[midway, above=6pt, font=\scriptsize\bfseries, text=warningred]{add(2,7,+5) --- 6 leaves!};
+\end{tikzpicture}
+\end{center}
+\vspace{0.15cm}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item Updating $r-l+1$ individual leaves is $O(n)$ per range update.
+  \item After the update, every ancestor in the tree must also be recomputed.
+  \item For $q$ range updates, this is $O(nq)$ --- the very cost we tried to avoid.
+\end{itemize}
+\vspace{0.15cm}
+\begin{block}{Key insight}
+If an update fully covers a node's interval, why touch its children at all? \\
+$\Longrightarrow$ \bignav{Postpone} the propagation. Do it \emph{only when needed}.
+\end{block}
+\end{frame}
+
+% ---------------- SLIDE 20: LAZY PROPAGATION ----------------
+\begin{frame}{Lazy Propagation --- Postpone, Don't Cancel}
+\small
+Add a companion array \texttt{lazy[node]}: a pending update that logically applies to the entire interval but hasn't yet been pushed to children.
+\vspace{0.15cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape, font=\scriptsize}]
+  \node[segnode, segfull, minimum width=2.5cm, minimum height=1.1cm]
+       (node) at (0,0) {node = $[l,r]$\\ sum = updated\\ \textcolor{darkgold}{lazy = pending}};
+  \node[segnode, minimum width=1.8cm, minimum height=0.9cm] (lc) at (-3, -2) {left child\\ \textbf{stale}};
+  \node[segnode, minimum width=1.8cm, minimum height=0.9cm] (rc) at (3, -2)  {right child\\ \textbf{stale}};
+  \draw[segedge] (node) -- (lc);
+  \draw[segedge] (node) -- (rc);
+  \draw[->, gold, ultra thick, dashed] (node.west) to[bend right=15] node[above, text=darkgold]{push later} (lc.north);
+  \draw[->, gold, ultra thick, dashed] (node.east) to[bend left=15]  node[above, text=darkgold]{push later} (rc.north);
+\end{tikzpicture}
+\end{center}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item When update fully covers $[l,r]$: apply it to \texttt{t[node]} and stash in \texttt{lazy[node]}. \bigacc{Done.}
+  \item Before descending into a lazy node (during a later query or update): \bignav{push} the pending value down, clear the tag, then continue.
+  \item Correct because we always ``pay'' the pending update the instant anyone looks below.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 21: LAZY CODE ----------------
+\begin{frame}[fragile]{Lazy Propagation --- Range Add \& Range Sum}
+\small
+\begin{lstlisting}
+long long t[4*N], lazy[4*N];  // lazy: pending +x to add to every leaf under node
+
+// Push the pending increment one level down
+void push(int node, int l, int r) {
+    if (lazy[node] == 0) return;
+    int mid = l + (r - l) / 2;
+    int lc = 2*node, rc = 2*node + 1;
+    t[lc]    += (long long)(mid - l + 1) * lazy[node];
+    lazy[lc] += lazy[node];
+    t[rc]    += (long long)(r - mid)     * lazy[node];
+    lazy[rc] += lazy[node];
+    lazy[node] = 0;
+}
+void update(int node, int l, int r, int ql, int qr, long long x) {
+    if (qr < l || r < ql) return;
+    if (ql <= l && r <= qr) {
+        t[node]    += (long long)(r - l + 1) * x;   // <-- multiply by length!
+        lazy[node] += x;
+        return;
+    }
+    push(node, l, r);
+    int mid = l + (r - l) / 2;
+    update(2*node,     l,     mid, ql, qr, x);
+    update(2*node + 1, mid+1, r,   ql, qr, x);
+    t[node] = t[2*node] + t[2*node + 1];
+}
+long long query(int node, int l, int r, int ql, int qr) {
+    if (qr < l || r < ql) return 0;
+    if (ql <= l && r <= qr) return t[node];
+    push(node, l, r);
+    int mid = l + (r - l) / 2;
+    return query(2*node, l, mid, ql, qr) + query(2*node + 1, mid + 1, r, ql, qr);
+}
+\end{lstlisting}
+\end{frame}
+
+% ---------------- SLIDE 22: LAZY CORRECTNESS & COMPLEXITY ----------------
+\begin{frame}{Lazy Propagation --- Correctness \& Complexity Caveats}
+\small
+\begin{block}{Why multiply by segment length?}
+Adding $x$ to every leaf in an interval of length $\ell$ increases the interval's sum by $\ell \cdot x$. Sum aggregates \emph{amounts}, not \emph{presences}.
+\end{block}
+
+\begin{block}{Composing pending tags}
+Two nested \texttt{add} updates accumulate:
+\[
+\texttt{lazy[node]} \mathrel{+}= x
+\]
+Because addition is associative and commutative, tags stack cleanly.
+\end{block}
+
+\vspace{0.15cm}
+\begin{block}{Complexity claim (be precise!)}
+For \bignav{range-add + range-sum}, both update and query are $\bigacc{O(\log n)}$.\\[2pt]
+\alert{This is NOT a universal $O(\log n)$ result.} It holds because:
+\begin{itemize}\setlength{\itemsep}{0pt}
+  \item The lazy tag ``add $x$'' can be applied to a node's aggregate in $O(1)$.
+  \item Two pending tags compose in $O(1)$ (just add them).
+\end{itemize}
+For operations where tags don't compose in $O(1)$ --- e.g.\ ``assign the maximum'' mixed with arbitrary updates --- extra care is needed, and complexity may differ.
+\end{block}
+\end{frame}
+
+% ---------------- SLIDE 23: RANGE-UPDATE COMPARISON GRAPH ----------------
+\begin{frame}{Range Update + Range Query --- Asymptotic Comparison}
+\small \emph{Range-add + range-sum, worst-case cost per operation.}
+\vspace{-0.15cm}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=5.5cm,
+  xlabel={$n$}, ylabel={operations per query/update},
+  xmode=log, log basis x=2, ymode=log,
+  xmin=2, xmax=1024, ymin=0.5, ymax=2000,
+  grid=both, legend style={at={(1.02,1)}, anchor=north west, font=\scriptsize, draw=navy!40},
+  every axis label/.append style={font=\scriptsize},
+  tick label style={font=\tiny},
+]
+\addplot[thick, warningred, domain=2:1024, samples=40] {x};
+\addlegendentry{Naive array $O(n)$}
+\addplot[thick, gold, dashed, domain=2:1024, samples=40] {x*0.5};
+\addlegendentry{Difference array$^{*}$}
+\addplot[thick, accentgreen, domain=2:1024, samples=40] {ln(x)/ln(2)*1.2};
+\addlegendentry{Fenwick (2-BIT)}
+\addplot[thick, deepblue, domain=2:1024, samples=40] {ln(x)/ln(2)*1.5};
+\addlegendentry{\textbf{Seg.\ tree + lazy}}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.1cm}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item $^{*}$Difference array supports $O(1)$ range-add, but computing a prefix/range-sum on the current state costs $O(n)$ unless amortized/offline.
+  \item Fenwick's ``2-BIT trick'' works for range-add + range-sum, matching seg.\ tree asymptotically.
+  \item Segment tree + lazy generalizes to many other update/query pairs; Fenwick tricks are more restrictive.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 24: ADVANCED VARIANTS ----------------
+\begin{frame}{A Quick Tour of Advanced Variants}
+\small
+\begin{columns}[T]
+\begin{column}{0.34\textwidth}
+\begin{block}{Iterative segment tree}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Bottom-up, no recursion.
+  \item Compact and cache-friendly.
+  \item Same $O(\log n)$ per op.
+  \item Simplest for point-update + range-query.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.34\textwidth}
+\begin{block}{Persistent segment tree}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Keeps every past version.
+  \item Path copying: each update creates $O(\log n)$ new nodes.
+  \item Old versions remain queryable.
+  \item Powers ``$k$-th smallest in range''.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.34\textwidth}
+\begin{block}{Dynamic (implicit) segment tree}
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Coordinate range up to $\sim 10^{18}$.
+  \item Nodes allocated only when visited.
+  \item $O(\log C)$ per op ($C$ = range).
+  \item Alternative: coordinate compression + static tree.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\vspace{0.2cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape, font=\scriptsize}]
+  % iterative
+  \foreach \i in {0,...,3}{ \node[segleaf] at (\i*0.55, 0) {}; }
+  \node[segnode, minimum width=0.5cm] at (0.28, 0.7) {};
+  \node[segnode, minimum width=0.5cm] at (1.38, 0.7) {};
+  \node[segnode, minimum width=1cm] at (0.83, 1.4) {};
+  \node[font=\tiny, text=navy] at (0.83, -0.6) {iterative};
+
+  % persistent (2 versions sharing structure)
+  \begin{scope}[xshift=5.5cm]
+    \node[segnode, minimum width=0.7cm] (a) at (0, 1.4) {};
+    \node[segnode, minimum width=0.7cm, fill=gold!40] (b) at (1.2, 1.4) {};
+    \node[segnode, minimum width=0.5cm] (c) at (-0.5, 0.7) {};
+    \node[segnode, minimum width=0.5cm, fill=gold!40] (d) at (0.7, 0.7) {};
+    \node[segnode, minimum width=0.5cm] (e) at (1.9, 0.7) {};
+    \node[segleaf] (f) at (-0.9, 0) {};
+    \node[segleaf] (g) at (0, 0) {};
+    \node[segleaf, fill=gold!40] (h) at (0.9, 0) {};
+    \node[segleaf] (i) at (2.2, 0) {};
+    \draw[segedge] (a)--(c); \draw[segedge] (a)--(e);
+    \draw[segedge] (b)--(d); \draw[segedge] (b)--(e);
+    \draw[segedge] (c)--(f); \draw[segedge] (c)--(g);
+    \draw[segedge] (d)--(g); \draw[segedge] (d)--(h);
+    \draw[segedge] (e)--(i);
+    \node[font=\tiny, text=navy] at (0.6, -0.6) {persistent (share = navy, new = gold)};
+  \end{scope}
+
+  % dynamic
+  \begin{scope}[xshift=11.5cm]
+    \node[segnode, minimum width=0.8cm] (r) at (0.7, 1.4) {};
+    \node[segnode, minimum width=0.5cm] (rl) at (0, 0.7) {};
+    \node[segleaf, minimum width=0.35cm] (rll) at (-0.2, 0) {};
+    \draw[segedge] (r)--(rl); \draw[segedge, dashed, navy!40] (r) -- ++(1.2, -0.7);
+    \draw[segedge] (rl)--(rll); \draw[segedge, dashed, navy!40] (rl) -- ++(0.6, -0.7);
+    \node[font=\tiny, text=navy] at (0.5, -0.6) {dynamic --- dashed = not allocated};
+  \end{scope}
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+% ---------------- SLIDE 25: REAL APPLICATION ----------------
+\begin{frame}{Real-Life Application --- Dynamic Time-Series Aggregation}
+\small
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\textbf{Scenario.} A resource monitor observes CPU/memory demand across time slots. It repeatedly receives:
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item \bignav{add(L,R,x)} --- a new task reserves $x$ units of capacity over $[L,R]$.
+  \item \bignav{query(L,R)} --- ``what is the peak (or total) demand over this window?''
+\end{itemize}
+\vspace{0.15cm}
+Why the straightforward options don't cut it:
+\begin{itemize}\setlength{\itemsep}{1pt}
+  \item Scanning $[L,R]$ per query is $O(R-L+1)$: too slow for large windows.
+  \item Static prefix sums cannot absorb frequent online range updates.
+  \item Recomputing everything after each update is $O(n)$.
+\end{itemize}
+\vspace{0.15cm}
+A \bignav{segment tree with lazy propagation} handles both operations in $O(\log n)$ per request --- online and interleaved.
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape, font=\tiny}]
+  \foreach \x/\h in {0/1.2, 0.5/1.6, 1/2.1, 1.5/2.4, 2/2.8, 2.5/2.4, 3/2.7, 3.5/2.9, 4/2.5, 4.5/2.2, 5/1.8, 5.5/1.4}{
+    \fill[deepblue!70] (\x, 0) rectangle (\x+0.4, \h);
+  }
+  \draw[->, navy, thick] (-0.2, 0) -- (6.1, 0) node[right, font=\scriptsize]{time};
+  \draw[->, navy, thick] (-0.2, 0) -- (-0.2, 3.3) node[above, font=\scriptsize]{load};
+  \draw[gold, ultra thick, decorate, decoration={brace, amplitude=5pt}]
+    (1, -0.15) -- (3.5, -0.15) node[midway, below=6pt, font=\scriptsize\bfseries, text=darkgold]{query [L,R]};
+  \draw[warningred, ultra thick, ->] (2, 3.4) -- (2, 2.9) node[above=6pt, font=\scriptsize, text=warningred, right=-2pt]{add $+x$};
+\end{tikzpicture}
+\vspace{0.3cm}
+
+\begin{block}{Caveat}
+Segment trees are a natural fit --- not the only possibility. In practice one may also consider interval trees, Fenwick variants, or specialized indexes depending on exact query mix.
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 26: SEG TREE vs FENWICK ----------------
+\begin{frame}{Segment Tree vs Fenwick Tree}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Pick a Fenwick tree when\ldots}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item You need prefix/range \textbf{sums} (or invertible aggregates).
+  \item \textbf{Point} updates dominate.
+  \item You want a \textbf{tiny}, cache-friendly implementation.
+  \item Memory budget is very tight.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Pick a segment tree when\ldots}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item You need \textbf{arbitrary} associative aggregates (min, max, gcd, \dots).
+  \item Nodes must store \textbf{richer state} (multiple fields).
+  \item You need \textbf{range updates} with lazy propagation.
+  \item You need advanced variants: \textbf{persistent, dynamic, merge-sort tree}, \dots
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\vspace{0.2cm}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+  \node[draw=warningred, fill=warningred!10, rounded corners=3pt,
+        text=warningred, inner sep=6pt, align=center] {%
+    \textbf{Common misconception:} ``Segment trees are always faster / always better.''\\
+    Reality: they trade constants and simplicity for flexibility. Both structures are excellent when used in their sweet spot.
+  };
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+% ---------------- SLIDE 27: DECISION FRAMEWORK ----------------
+\begin{frame}{How to Recognize a Segment-Tree Problem}
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.55cm and 0.6cm,
+    every node/.style={font=\scriptsize},
+    box/.style={draw=navy, thick, fill=lightblue!35, rounded corners=3pt,
+                minimum width=6.5cm, minimum height=0.75cm, align=center},
+    yes/.style={draw=accentgreen, ultra thick, fill=softgreen, rounded corners=3pt,
+                minimum width=5cm, minimum height=0.9cm, align=center, font=\scriptsize\bfseries, text=accentgreen!60!black},
+    arrow/.style={-{Latex[length=2mm]}, thick, navy}
+  ]
+  \node[box] (q1) {\textbf{1.} Does the problem operate on \textbf{contiguous ranges}?};
+  \node[box, below=of q1] (q2) {\textbf{2.} Are there \textbf{frequent queries} on those ranges?};
+  \node[box, below=of q2] (q3) {\textbf{3.} Are there \textbf{updates} interleaved with the queries?};
+  \node[box, below=of q3] (q4) {\textbf{4.} Can the answer be built by \textbf{merging} sub-range answers (associative)?};
+  \node[yes, below=of q4] (yes) {$\Rightarrow$ \; Think \emph{Segment Tree}};
+  \draw[arrow] (q1) -- (q2);
+  \draw[arrow] (q2) -- (q3);
+  \draw[arrow] (q3) -- (q4);
+  \draw[arrow] (q4) -- (yes);
+  % side hints
+  \node[right=0.4cm of q1, font=\tiny, text=navy!70, align=left] {intervals, subarrays,\\ time windows};
+  \node[right=0.4cm of q2, font=\tiny, text=navy!70, align=left] {sum, min, max,\\ gcd, count, \dots};
+  \node[right=0.4cm of q3, font=\tiny, text=navy!70, align=left] {point or range;\\ online mix};
+  \node[right=0.4cm of q4, font=\tiny, text=navy!70, align=left] {sum, min, matrix,\\ mergeable state};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+% ---------------- SLIDE 28: SUMMARY ----------------
+\begin{frame}{Summary}
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+  \node[draw=navy, thick, fill=lightblue!30, rounded corners=5pt,
+        minimum width=4.2cm, minimum height=0.9cm, align=center] (a) at (-4.5, 0)
+    {\textbf{Range Queries}};
+  \node[draw=navy, thick, fill=lightblue!30, rounded corners=5pt,
+        minimum width=4.2cm, minimum height=0.9cm, align=center] (b) at (0, 0)
+    {\textbf{Dynamic Updates}};
+  \node[draw=navy, thick, fill=lightblue!30, rounded corners=5pt,
+        minimum width=4.2cm, minimum height=0.9cm, align=center] (c) at (4.5, 0)
+    {\textbf{Mergeable Information}};
+  \node[font=\Large\bfseries, text=deepblue] at (-2.25, 0) {$+$};
+  \node[font=\Large\bfseries, text=deepblue] at ( 2.25, 0) {$+$};
+
+  \draw[->, ultra thick, gold] (0, -0.6) -- (0, -1.6);
+
+  \node[draw=accentgreen, ultra thick, fill=softgreen, rounded corners=6pt,
+        minimum width=8cm, minimum height=1.1cm, align=center,
+        font=\Large\bfseries, text=accentgreen!60!black] at (0, -2.2)
+    {Efficient Online Processing --- $O(\log n)$};
+\end{tikzpicture}
+\end{center}
+\vspace{0.35cm}
+\begin{itemize}\setlength{\itemsep}{2pt}
+  \item A segment tree is a \bignav{framework}: \texttt{Item} + associative \texttt{merge}.
+  \item Build $O(n)$; query and point update $O(\log n)$ per operation.
+  \item Range updates with a compatible lazy tag: also $O(\log n)$.
+  \item Variants (iterative / persistent / dynamic) extend it to specialized regimes.
+  \item Not always the answer --- but often the \emph{right} answer when queries and updates coexist.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE 29: REFERENCES ----------------
+\begin{frame}{References}
+\small
+\begin{itemize}\setlength{\itemsep}{4pt}
+  \item CP-Algorithms --- \emph{Segment Tree}. \\ \texttt{https://cp-algorithms.com/data\_structures/segment\_tree.html}
+  \item T. H. Cormen, C. E. Leiserson, R. L. Rivest, C. Stein --- \emph{Introduction to Algorithms}, 4th ed., MIT Press, 2022.
+  \item J. Kleinberg, \'E. Tardos --- \emph{Algorithm Design}, Pearson, 2005.
+  \item S. Halim, F. Halim, S. S. Halim --- \emph{Competitive Programming 4}, Book 2, 2020.
+  \item USACO Guide --- \emph{Point Update Range Sum} and \emph{Range Update Range Query}. \\ \texttt{https://usaco.guide/}
+  \item GeeksforGeeks --- \emph{Segment Tree} (introduction, lazy propagation).
+\end{itemize}
+\vspace{0.25cm}
+\begin{center}
+\begin{tikzpicture}
+  \node[draw=navy, thick, fill=gold!35, rounded corners=5pt,
+        minimum width=6cm, minimum height=1.2cm, align=center,
+        font=\Large\bfseries, text=navy] {Questions?};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\end{document}

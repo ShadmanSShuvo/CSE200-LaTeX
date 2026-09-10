@@ -1,0 +1,198 @@
+
+% ============================================================
+% PART I -- INTRODUCTION & MOTIVATION (shuvo)
+% ============================================================
+\setpresenter{Shuvo --- Introduction \& Motivation}
+\section{Part I --- Introduction \& Motivation}
+
+% ---------------- SLIDE 2: HOOK / OPENER ----------------
+\begin{frame}{A Billion Numbers. One Question at a Time.}
+\centering
+\vspace{0.3cm}
+\begin{tikzpicture}[every node/.style={font=\small}]
+  \node[draw=navy, ultra thick, fill=lightblue!30, rounded corners=6pt,
+        text width=10cm, align=center, inner sep=12pt,
+        font=\large\bfseries, text=navy]
+        (q) {It's 9:31 AM. The stock market just opened, and 20{,}000 prices are changing every second --- what's the total value of your portfolio right now?};
+\end{tikzpicture}
+\vspace{0.4cm}
+\pause
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\centering
+\textbf{\textcolor{warningred}{Recompute everything?}} \\[2pt]
+\scriptsize Too slow when this happens thousands of times a second.
+\end{column}
+\pause
+\begin{column}{0.5\textwidth}
+\centering
+\textbf{\textcolor{accentgreen}{Precompute once?}} \\[2pt]
+\scriptsize Breaks the moment anything changes.
+\end{column}
+\end{columns}
+\vspace{0.3cm}
+\pause
+\begin{block}{}
+\centering This is the exact tension every large system --- stock feeds, leaderboards, analytics dashboards --- fights constantly.
+\end{block}
+\end{frame}
+
+% ---------------- SLIDE 3: MAPPING + WHY THE OBVIOUS FIXES FAIL ----------------
+\begin{frame}{From Wall Street to Array Indices}
+\vspace{-0.1cm}
+\begin{columns}[T]
+\begin{column}{0.38\textwidth}
+\small
+\begin{block}{Translating the problem}
+\begin{tabular}{@{}ll@{}}
+Stock $i$'s price & $A[i]$ \\
+Portfolio total & \texttt{sum(l,r)} \\
+Price change & \texttt{update(i,v)} \\
+\end{tabular}
+\end{block}
+\vspace{0.3cm}
+\onslide<3->{
+\begin{block}{The catch}
+\small Keep the sum fresh $\Rightarrow$ every update is $O(n)$.\\
+Keep updates instant $\Rightarrow$ every query is $O(n)$.
+\end{block}}
+\end{column}
+
+\begin{column}{0.62\textwidth}
+\centering
+% ---- Stage 1: precomputed sum, watching stock i ----
+\only<1>{
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape}]
+  \foreach \v [count=\i from 1] in {112,98,205,150,87,300,64,190}{
+    \node[arrbox] (a\i) at (\i*1.0, 0) {\v};
+  }
+  \node[draw=navy, thick, fill=lightblue!40, rounded corners=3pt,
+        minimum width=3.2cm, minimum height=0.8cm] (sum) at (4.5, -1.7) {\textbf{Precomputed total = 1206}};
+  \node[font=\scriptsize, text=warningred] at (4, 1.0) {watching stock \#4};
+  \draw[->, warningred, thick] (4, 0.85) -- (a4.north);
+\end{tikzpicture}}
+% ---- Stage 2: update hits, sum goes stale ----
+\only<2>{
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape}]
+  \foreach \v [count=\i from 1] in {112,98,205,150,87,300,64,190}{
+    \ifnum\i=4
+      \node[arrbox, fill=warningred!30, draw=warningred] (a\i) at (\i*1.0, 0) {230};
+    \else
+      \node[arrbox] (a\i) at (\i*1.0, 0) {\v};
+    \fi
+  }
+  \node[font=\scriptsize\bfseries, text=warningred] at (4, 1.0) {9:36 AM --- price update!};
+  \draw[->, warningred, thick] (4, 0.85) -- (a4.north);
+  \node[draw=warningred, ultra thick, fill=warningred!15, rounded corners=3pt,
+        minimum width=3.4cm, minimum height=0.8cm] (sum) at (4.5, -1.7)
+        {\sout{\textbf{total = 1206}} \textbf{\textcolor{warningred}{--- stale!}}};
+\end{tikzpicture}}
+% ---- Stage 3: both fixes cost O(n) ----
+\only<3->{
+\begin{tikzpicture}[scale=0.85, every node/.style={transform shape}]
+  \node[draw=warningred, thick, fill=warningred!10, rounded corners=4pt,
+        minimum width=5.5cm, minimum height=1cm, align=center, font=\small]
+        (o1) at (0,1.2) {\textbf{Recompute the total}\\ every update $\Rightarrow O(n)$};
+  \node[draw=warningred, thick, fill=warningred!10, rounded corners=4pt,
+        minimum width=5.5cm, minimum height=1cm, align=center, font=\small]
+        (o2) at (0,-0.5) {\textbf{Rescan the range} \\ every query $\Rightarrow O(n)$};
+  \node[font=\Large, text=warningred] at (-3.3, 1.2) {\ding{55}};
+  \node[font=\Large, text=warningred] at (-3.3, -0.5) {\ding{55}};
+\end{tikzpicture}}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------- SLIDE 4: THE DIVIDE-AND-CONQUER IDEA ----------------
+\begin{frame}{What If We Just... Split the Problem?}
+\centering
+\vspace{0.4cm}
+\begin{tikzpicture}[every node/.style={font=\small}]
+  \node[draw=navy, ultra thick, fill=lightblue!30, rounded corners=6pt,
+        text width=10cm, align=center, inner sep=12pt,
+        font=\large\bfseries, text=navy]
+        (q) {Instead of touching the whole array every time --- what if we recursively split it in half, solve each half, and just \emph{combine} the answers?};
+\end{tikzpicture}
+\vspace{0.5cm}
+\pause
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\begin{itemize}[<+->]\setlength{\itemsep}{4pt}
+  \item Each split costs almost nothing.
+  \item Only $O(\log n)$ splits are ever needed to reach any piece.
+  \item Combining is cheap --- just merge two summaries.
+\end{itemize}
+\end{column}
+\begin{column}{0.45\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.75, every node/.style={transform shape, font=\scriptsize}]
+  \onslide<5->{
+  \draw[->, thick, navy] (0,0) -- (5,0) node[right] {input size};
+  \draw[->, thick, navy] (0,0) -- (0,3.5) node[above] {work done};}
+  \onslide<5->{\draw[thick, warningred] plot[domain=0.2:4.5, samples=30] (\x, {\x});}
+  \onslide<5->{\node[text=warningred, font=\tiny] at (4.3,3.5) {touch everything};}
+  \onslide<5->{\draw[thick, accentgreen] plot[domain=0.2:4.5, samples=30] (\x, {ln(\x+1)});}
+  \onslide<5->{\node[text=accentgreen, font=\tiny\bfseries] at (4.3,1.9) {split \& combine};}
+\end{tikzpicture}
+\end{column}
+\end{columns}
+\vspace{0.3cm}
+\onslide<6->{\centering\small That gap between the two curves --- \textbf{that's} the whole idea we're chasing.}
+\end{frame}
+
+% ---------------- SLIDE 5: COMPLEXITY GRAPH ----------------
+\begin{frame}{Why $\log n$ Feels Free} 
+\vspace{-0.1cm} \begin{center} \begin{tikzpicture} \begin{axis}[ width=11cm, height=6.3cm, xlabel={Input size $n$ (log scale, base 2)}, ylabel={Relative operations}, xmode=log, log basis x=2, ymode=log, log basis y=10, xmin=2, xmax=1024, ymin=0.8, ymax=20000, grid=both, major grid style={line width=.2pt, draw=gray!40}, minor grid style={line width=.1pt, draw=gray!20}, legend style={at={(1.02,1)}, anchor=north west, font=\scriptsize, draw=navy!40}, every axis label/.append style={font=\scriptsize}, tick label style={font=\tiny}, ] \addplot[thick, deepblue, domain=2:1024, samples=40, mark=none] {1}; \addlegendentry{$O(1)$} \addplot[thick, accentgreen, domain=2:1024, samples=40, mark=none] {ln(x)/ln(2)}; \addlegendentry{$O(\log n)$} \addplot[thick, gold, domain=2:1024, samples=40, mark=none] {x}; \addlegendentry{$O(n)$} \addplot[thick, warningred, domain=2:1024, samples=40, mark=none, dashed] {x*ln(x)/ln(2)}; \addlegendentry{$O(n \log n)$} \end{axis} \end{tikzpicture} \end{center} \begin{center}\scriptsize \textcolor{accentgreen}{$\log_2 n$ grows glacially --- e.g.\ $\log_2 (10^9) \approx 30$.} \end{center} 
+\end{frame}
+
+
+
+% ---------------- SLIDE 6: CORE IDEA ----------------
+\begin{frame}{Split It, Store It, Solve It}
+\small
+Store a \bignav{summary} of each interval at a tree node; queries \textbf{glue} summaries together.
+\vspace{-0.1cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.95, every node/.style={transform shape, font=\scriptsize}]
+  \draw[navy, thick, fill=lightblue!60] (0,3.6) rectangle (12,4.3);
+  \node at (6, 3.95) {\textbf{Interval [1,8]} --- one summary};
+
+  \onslide<2->{
+  \draw[navy, thick, fill=lightblue!45] (0,2.6) rectangle (6,3.3);
+  \node at (3, 2.95) {\textbf{[1,4]}};
+  \draw[navy, thick, fill=lightblue!45] (6,2.6) rectangle (12,3.3);
+  \node at (9, 2.95) {\textbf{[5,8]}};
+  }
+
+  \onslide<3->{
+  \foreach \i/\l/\r in {0/1/2, 3/3/4, 6/5/6, 9/7/8}{
+    \draw[navy, thick, fill=lightblue!30] (\i,1.6) rectangle (\i+3,2.3);
+    \node at (\i+1.5, 1.95) {[\l,\r]};
+  }
+  }
+
+  \onslide<4->{
+  \foreach \i/\v/\idx in {0/2/1, 1.5/1/2, 3/5/3, 4.5/3/4, 6/7/5, 7.5/4/6, 9/6/7, 10.5/8/8}{
+    \draw[navy, thick, fill=cream] (\i,0.4) rectangle (\i+1.5,1.1);
+    \node at (\i+0.75, 0.75) {\textbf{\v}};
+    \node[font=\tiny, text=navy!70] at (\i+0.75, 0.15) {\idx};
+  }
+  }
+
+  \node[font=\tiny, text=navy!70, anchor=west] at (12.2, 3.95) {level 0};
+  \onslide<2->{\node[font=\tiny, text=navy!70, anchor=west] at (12.2, 2.95) {level 1};}
+  \onslide<3->{\node[font=\tiny, text=navy!70, anchor=west] at (12.2, 1.95) {level 2};}
+  \onslide<4->{\node[font=\tiny, text=navy!70, anchor=west] at (12.2, 0.75) {leaves};}
+\end{tikzpicture}
+\end{center}
+\onslide<5->
+\begin{itemize}[<+->]\setlength{\itemsep}{1pt}
+  \item Children split each interval in half; height $=\lceil \log_2 n \rceil$.
+  \item Any range $[l,r]$ decomposes into just $O(\log n)$ pieces.
+\end{itemize}
+\end{frame}
+
+% ---------------- SLIDE: ANATOMY ---------------- 
+\begin{frame}{Build Segment Tree} \vspace{-0.15cm} 
+\begin{center} \begin{tikzpicture}[scale=0.92, every node/.style={transform shape}] \onslide<4->{\node[segnode] (n1) at (7, 6) {[1,8]\\ \textbf{36}};} \onslide<3->{ \node[segnode] (n2) at (3.5, 4.5) {[1,4]\\ \textbf{11}}; \node[segnode] (n3) at (10.5, 4.5) {[5,8]\\ \textbf{25}};} \onslide<2->{ \node[segnode] (n4) at (1.7, 3) {[1,2]\\ \textbf{3}}; \node[segnode] (n5) at (5.3, 3) {[3,4]\\ \textbf{8}}; \node[segnode] (n6) at (8.7, 3) {[5,6]\\ \textbf{11}}; \node[segnode] (n7) at (12.3, 3) {[7,8]\\ \textbf{14}};} \node[segleaf] (l1) at (0.8, 1.3) {2}; \node[segleaf] (l2) at (2.6, 1.3) {1}; \node[segleaf] (l3) at (4.4, 1.3) {5}; \node[segleaf] (l4) at (6.2, 1.3) {3}; \node[segleaf] (l5) at (7.8, 1.3) {7}; \node[segleaf] (l6) at (9.6, 1.3) {4}; \node[segleaf] (l7) at (11.4, 1.3) {6}; \node[segleaf] (l8) at (13.2, 1.3) {8}; \onslide<2->{\draw[segedge] (n4)--(l1); \draw[segedge] (n4)--(l2); \draw[segedge] (n5)--(l3); \draw[segedge] (n5)--(l4); \draw[segedge] (n6)--(l5); \draw[segedge] (n6)--(l6); \draw[segedge] (n7)--(l7); \draw[segedge] (n7)--(l8);} \onslide<3->{\draw[segedge] (n2)--(n4); \draw[segedge] (n2)--(n5); \draw[segedge] (n3)--(n6); \draw[segedge] (n3)--(n7);} \onslide<4->{\draw[segedge] (n1)--(n2); \draw[segedge] (n1)--(n3);} \foreach \x/\i in {0.8/1, 2.6/2, 4.4/3, 6.2/4, 7.8/5, 9.6/6, 11.4/7, 13.2/8} \node[font=\tiny, text=navy!70] at (\x, 0.75) {\i}; \end{tikzpicture} \end{center} \onslide<5->{\centering\small Built bottom-up: each parent is just the \bignav{merge} of its two children.} 
+\end{frame}
