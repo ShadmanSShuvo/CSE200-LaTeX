@@ -11,7 +11,7 @@ This repository serves as a centralized collection of LaTeX source documents, re
 | [`Assignment/`](./Assignment/) | Research Paper | Full ACM-formatted (`acmart`) reproduction of *"Migrating Code At Scale With LLMs At Google"*, split into modular section files with figures and citations. | [`Assignment/main.pdf`](./Assignment/main.pdf) |
 | [`Online/`](./Online/) | Academic Handouts | Collection of 6 independent mathematical and scientific write-ups (Knot Theory, Fireflies, Laplace, DNA Storage, Riemann Hypothesis, Solar System). | [`Online/all/Online_all.pdf`](./Online/all/Online_all.pdf)<br>*(See [`Online/README.md`](./Online/README.md))* |
 | [`Presentation/`](./Presentation/) | Beamer Slide Deck | Comprehensive presentation on *Segment Trees* (A1-Group 8), utilizing TikZ vector diagrams and modern Beamer visual styling. | [`Presentation/Segment Tree - CSE200 Presentation.pdf`](./Presentation/Segment%20Tree%20-%20CSE200%20Presentation.pdf) |
-| [`Report/`](./Report/) | Course Reports | Workspace reserved for semester project write-ups and formal lab reports. | — |
+| [`Report/`](./Report/) | Technical Report | Formal report on *Segment Trees: Fast Range Queries and Dynamic Updates*, featuring TikZ data structure visualizations, algorithmic listings, and styled PDF variants. | [`Report/segment-tree-report-v2.pdf`](./Report/segment-tree-report-v2.pdf) |
 
 ---
 
@@ -49,6 +49,19 @@ For comprehensive documentation on the online evaluations, refer to [`Online/REA
   - Native TikZ drawings of tree structures, recursive splits, range intervals, and array representations.
   - Primary deck: [`Presentation/Segment Tree - CSE200 Presentation.pdf`](./Presentation/Segment%20Tree%20-%20CSE200%20Presentation.pdf) (compiled from [`main.tex`](./Presentation/main.tex) / [`segment tree-v2.tex`](./Presentation/segment%20tree-v2.tex)).
 
+### 4. Technical Report ([`Report/`](./Report/))
+- **Topic**: *Segment Tree: Fast Range Queries and Dynamic Updates*
+- **Authors**: Shayan Un Noor (2305024), Md. Shadman Shahriyar Shuvo (2305025), Md. Wasif Haque (2305029)
+- **Source Files**:
+  - [`segment-tree-report-v2.tex`](./Report/segment-tree-report-v2.tex): Main report source with navy/cream color palette matching the presentation, TikZ tree node styling, C++ algorithmic code listings (`listings`), and hyperref configuration.
+  - [`segment-tree-report.tex`](./Report/segment-tree-report.tex): Baseline technical report implementation.
+- **Compiled PDF Variants**:
+  - [`segment-tree-report-v2.pdf`](./Report/segment-tree-report-v2.pdf): Standard LaTeX article layout.
+  - [`segment-tree-report-v2-scrartcl.pdf`](./Report/segment-tree-report-v2-scrartcl.pdf): KOMA-Script article layout.
+  - [`segment-tree-report-v2 -scrartcl-toc.pdf`](./Report/segment-tree-report-v2%20-scrartcl-toc.pdf): KOMA-Script layout including Table of Contents.
+  - [`segment-tree-report-v2 -scrartcl-toc-textsc.pdf`](./Report/segment-tree-report-v2%20-scrartcl-toc-textsc.pdf): KOMA-Script layout with Table of Contents and small-caps headers.
+  - [`segment-tree-report-v2-prism.pdf`](./Report/segment-tree-report-v2-prism.pdf): Styled variant featuring prism syntax highlighting aesthetics.
+
 ---
 
 ## 🛠️ Prerequisites & Requirements
@@ -84,6 +97,10 @@ latexmk -pdf main.tex
 # 3. Compile an Online Handout (e.g., A1-knot)
 cd ../Online/A1-knot
 latexmk -pdf main.tex
+
+# 4. Compile Technical Report
+cd ../Report
+latexmk -pdf segment-tree-report-v2-2.tex
 ```
 
 ### Manual Compilation Sequences
@@ -111,6 +128,13 @@ pdflatex main.tex
 cd Presentation
 pdflatex main.tex
 pdflatex main.tex
+```
+
+#### For `Report/` (LaTeX Article with TikZ & Listings):
+```bash
+cd Report
+pdflatex segment-tree-report-v2.tex
+pdflatex segment-tree-report-v2.tex
 ```
 
 ---
