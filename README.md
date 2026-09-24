@@ -125,16 +125,16 @@ pdflatex main.tex
 
 #### For `Presentation/` (Beamer with TikZ):
 ```bash
-cd Presentation
-pdflatex main.tex
-pdflatex main.tex
+cd Presentation/A1-Group8
+pdflatex segment-tree.tex
+pdflatex segment-tree.tex
 ```
 
 #### For `Report/` (LaTeX Article with TikZ & Listings):
 ```bash
-cd Report
-pdflatex segment-tree-report-v2.tex
-pdflatex segment-tree-report-v2.tex
+cd Report/A1-Group8
+pdflatex segment-tree.tex
+pdflatex segment-tree.tex
 ```
 
 ---
