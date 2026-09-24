@@ -1,0 +1,282 @@
+% ==================================================================
+%  PART 5 --- Chapter 11 (Segment Tree vs. Other Data Structures),
+%  Chapter 12 (Complexity and Practical Considerations),
+%  Chapter 13 (Conclusion), Appendices (Reference Pseudocode,
+%  Summary of Complexity), and Bibliography.
+%  Paste this directly after the last line of part4 (the closing
+%  paragraph of the Applications chapter) and before \end{document}.
+% ==================================================================
+
+\chapter{Segment Tree vs.\ Other Data Structures}
+\label{ch:comparison}
+
+The preceding chapters developed the Segment Tree in isolation. This chapter places it alongside the other standard tools for range queries, so that choosing among them becomes a matter of matching a structure's guarantees to a problem's requirements rather than defaulting to the most recently learned technique.
+
+\section{Na\"ive Array}
+A plain array supports a point update in $\Oh{1}$ by simply overwriting $A[i]$, but a range query has no shortcut: every one of the $r-l+1$ elements in $[l,r]$ must be read, giving $\Oh{n}$ in the worst case. This is exactly the baseline the illustrative comparison in Chapter~\ref{ch:practical} quantifies.
+
+\section{Prefix Sum}
+\label{sec:prefixsum}
+Precomputing $P[i]=\sum_{k=1}^{i}A[k]$ once, in $\Oh{n}$, answers any range-sum query as $P[r]-P[l-1]$ in $\Oh{1}$ --- unbeatable when the array never changes. The weakness is symmetric to the na\"ive array's: a single point update at position $i$ invalidates $P[i],P[i+1],\ldots,P[n]$, forcing an $\Oh{n}$ rebuild of the suffix of the prefix array. Table~\ref{tab:tradeoff} already used this trade-off to motivate the Segment Tree in Chapter~\ref{ch:problem}; it is restated here as the first row of Table~\ref{tab:comparison-full} for completeness.
+
+\begin{pitfall}
+Prefix sums generalize to range \emph{minimum} or \emph{maximum} only with great difficulty, because neither operation is invertible: there is no analogue of $P[r]-P[l-1]$ that recovers $\min(A[l],\ldots,A[r])$ from two precomputed prefix minima. This is one of the main reasons the technique does not compete with a Segment Tree outside of range-sum (and other invertible) settings.
+\end{pitfall}
+
+\section{Square-Root Decomposition}
+\label{sec:sqrtdecomp}
+Square-root decomposition splits $A[1\ldots n]$ into $\approx\sqrt{n}$ contiguous blocks of size $\approx\sqrt{n}$ each, storing one aggregate per block. A point update recomputes only the one block containing the changed index, in $\Oh{\sqrt n}$. A range query $[l,r]$ reads whole blocks fully contained in $[l,r]$ directly from their precomputed aggregates, and falls back to scanning the at most two partial blocks at the ends element by element, for a total of $\Oh{\sqrt n}$.
+
+\begin{keyidea}
+Square-root decomposition is best understood as sitting exactly between the two extremes of Sections~\ref{sec:prefixsum}--above: it balances update and query cost instead of making one of them $\Oh{1}$ at the other's expense, in the same spirit as the Segment Tree, but with a shallower two-level hierarchy (blocks of elements) instead of a full $\Oh{\log n}$-deep binary decomposition.
+\end{keyidea}
+
+Because both of its operations are $\Oh{\sqrt n}$ rather than $\Oh{\log n}$, square-root decomposition is asymptotically slower than a Segment Tree for large $n$, but its block structure is simple to implement and adapts readily to more exotic per-block bookkeeping (for example, a per-block ``lazy'' add, mirroring Chapter~\ref{ch:lazy} at a coarser granularity), which is why it remains popular as a quick, low-risk substitute when a Segment Tree's implementation cost is not justified.
+
+\section{Sparse Table}
+\label{sec:sparsetable}
+A sparse table precomputes, for every position $i$ and every power of two $2^{k}\le n$, the aggregate of the block $[i,i+2^{k}-1]$, using $\Oh{n\log n}$ time and space overall. For an \emph{idempotent} merge operation --- one satisfying $f(a,a)=a$, such as $\min$, $\max$, or bitwise $\mathrm{AND}$/$\mathrm{OR}$ --- any range query $[l,r]$ can then be answered in $\Oh{1}$ by covering it with two (possibly overlapping) precomputed blocks of size $2^{\lfloor\log_2(r-l+1)\rfloor}$ and merging them, since overlap causes no double-counting under idempotence.
+
+\begin{pitfall}
+The sparse table's $\Oh{1}$ query is available \emph{only} for idempotent operations and \emph{only} on a static array: unlike the overlap in $\min$/$\max$ queries, overlap under sum double-counts the shared region, so a sparse table cannot answer range-sum queries this way; and because every precomputed block would need to be recomputed, it does not support updates at all in its basic form. It is best reserved for static range-minimum/maximum queries (for instance, as a building block for the Lowest Common Ancestor problem), not as a general-purpose competitor to the Segment Tree.
+\end{pitfall}
+
+\section{Fenwick Tree}
+\label{sec:fenwick}
+A Fenwick Tree (Binary Indexed Tree) supports both point update and range-sum query in $\Oh{\log n}$, matching the Segment Tree's asymptotic bounds for this specific combination, but with a smaller memory footprint (an array of size $n{+}1$, versus the $4n$ bound of Lemma~\ref{lem:space}) and a markedly simpler implementation: each of its two core operations is a short loop that repeatedly adds or subtracts the lowest set bit of an index, with no explicit tree, recursion, or merge function to write.
+
+\begin{table}[H]
+\centering
+\caption{Point update and range-sum query implemented on a Fenwick Tree; \texttt{tree} is 1-indexed and initialized to all zeros.}
+\label{lst:fenwick-ref}
+\begin{lstlisting}[style=cpp]
+void update(int i, int delta) {
+    for (; i <= n; i += i & (-i))
+        tree[i] += delta;
+}
+
+int prefixSum(int i) {
+    int s = 0;
+    for (; i > 0; i -= i & (-i))
+        s += tree[i];
+    return s;
+}
+
+int rangeSum(int l, int r) {
+    return prefixSum(r) - prefixSum(l - 1);
+}
+\end{lstlisting}
+\end{table}
+
+The Fenwick Tree's simplicity comes at a cost of generality. It is naturally suited only to operations that, like sum, admit an inverse (so that a range query can be expressed as a difference of two prefix queries, exactly as in Section~\ref{sec:prefixsum}); $\min$ and $\max$ have no such inverse, so a Fenwick Tree cannot answer arbitrary range-minimum or range-maximum queries the way a Segment Tree can via Chapter~\ref{ch:general}. Range \emph{updates} are also not its basic operation: a Fenwick Tree can be adapted, with a second auxiliary array, to support range-add/point-query or even range-add/range-sum-query, but this adaptation is closer in spirit to the lazy propagation of Chapter~\ref{ch:lazy} bolted onto an unrelated structure than to a native feature of the Fenwick Tree itself.
+
+\section{Comparison Table}
+Table~\ref{tab:comparison-full} consolidates every structure discussed above. Rather than declaring one structure to be strictly superior, the appropriate conclusion is that each occupies a distinct point in the trade-off between update cost, query cost, memory, and the class of operations it supports --- exactly the axes the design checklist of Table~\ref{tab:checklist} already asks the reader to consider.
+
+\begin{table}[H]
+\centering
+\caption{Segment Tree versus the other standard range-query structures.}
+\label{tab:comparison-full}
+\begin{tabular}{lccccl}
+\toprule
+\tblhead{Structure} & \tblhead{Update} & \tblhead{Query} & \tblhead{Build} & \tblhead{Memory} & \tblhead{Supports} \\
+\midrule
+Na\"ive array        & $\Oh{1}$        & $\Oh{n}$        & --            & $\sim n$   & Any op.\ (query only fast when $\Oh{1}$ needed on update) \\
+Prefix sum           & $\Oh{n}$        & $\Oh{1}$        & $\Oh{n}$      & $\sim n$   & Invertible ops.\ (sum), static-heavy workloads \\
+Sqrt decomposition   & $\Oh{\sqrt n}$  & $\Oh{\sqrt n}$  & $\Oh{n}$      & $\sim n$   & Any associative op.; simple to extend \\
+Sparse table         & unsupported     & $\Oh{1}$        & $\Oh{n\log n}$& $\sim n\log n$ & Idempotent ops.\ (min/max) on a static array \\
+Fenwick tree          & $\Oh{\log n}$   & $\Oh{\log n}$   & $\Oh{n\log n}$ & $\sim n$   & Invertible ops.\ (sum); simpler, less flexible \\
+\rowcolor{lightblue!30}
+Segment tree          & $\Oh{\log n}$   & $\Oh{\log n}$   & $\Oh{n}$      & $\sim 4n$  & Any associative op.; range updates via Ch.~\ref{ch:lazy} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}
+Only the Segment Tree combines logarithmic point update \emph{and} logarithmic range query \emph{and} full generality to any associative merge \emph{and} a natural route to range updates (Chapter~\ref{ch:lazy}) in one structure. Every other row of Table~\ref{tab:comparison-full} gives up at least one of these four properties in exchange for simplicity, memory, or a faster constant --- which is precisely why the design checklist of Table~\ref{tab:checklist} matters: the ``best'' structure is the cheapest one that still satisfies what the problem actually demands.
+\end{remark}
+
+% ==================================================================
+\chapter{Complexity and Practical Considerations}
+\label{ch:practical}
+
+Table~\ref{tab:summary} consolidates the complexity results derived across Chapters~\ref{ch:complexity}--\ref{ch:correctness} and extended to range updates in Chapter~\ref{ch:lazy}.
+
+\begin{table}[H]
+\centering
+\caption{Summary of Segment Tree time and space complexity.}
+\label{tab:summary}
+\begin{tabular}{llp{6.2cm}}
+\toprule
+\tblhead{Operation} & \tblhead{Time Complexity} & \tblhead{Explanation} \\
+\midrule
+Build          & $\Oh{n}$      & Every tree node is constructed exactly once (Lemma~\ref{lem:build-time}). \\
+Point update   & $\Oh{\log n}$ & Exactly one root-to-leaf path is recomputed (Lemma~\ref{lem:update-time}). \\
+Range query    & $\Oh{\log n}$ & At most $\Oh{1}$ partially-overlapping nodes are expanded per level (Theorem~\ref{thm:query-time}). \\
+Range update   & $\Oh{\log n}$ & Same overlap argument as range query, plus $\Oh{1}$ push-down per node (Lemma~\ref{lem:lazy-time}). \\
+Space          & $\Oh{n}$      & The tree occupies at most $4n$ array cells (Lemma~\ref{lem:space}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{equation}
+\boxed{
+\begin{aligned}
+\text{Build} &= \Oh{n} \\
+\text{Point update} &= \Oh{\log n} \\
+\text{Range query} &= \Oh{\log n} \\
+\text{Range update (lazy)} &= \Oh{\log n} \\
+\text{Space} &= \Oh{n}
+\end{aligned}}
+\end{equation}
+
+\section{An Illustrative Operation-Count Comparison}
+As a purely illustrative, hypothetical operation-count comparison --- not a benchmark of any real implementation, and deliberately ignoring constant factors, cache effects, and language overhead --- consider a system with $n=1024$ instruments (matching the financial-instrument scenario of Section~1.1) that processes $q = 36\times 10^{9}$ combined queries and updates over the course of a trading day, with each elementary step taking roughly $1$ nanosecond. An $\Oh{qn}$ na\"ive approach (Section~\ref{sec:prefixsum}'s array-scan behaviour, or a prefix-sum array under frequent updates) would require on the order of $q\cdot n \approx 3.7\times 10^{13}$ elementary steps, i.e.\ roughly $10.24$ hours of raw operation count. An $\Oh{q\log n}$ Segment Tree approach, with $\log_2 1024 = 10$, requires on the order of $q\log_2 n \approx 3.6\times 10^{11}$ steps, i.e.\ roughly $6$ minutes. The gap is driven entirely by $n$ versus $\log_2 n$ in the operation count, and the absolute times should be read only as an order-of-magnitude illustration of why $\Oh{\log n}$ per operation matters once $q$ is large, rather than as a measured runtime of any particular implementation.
+
+\section{Choosing a Structure in Practice}
+Bringing together Table~\ref{tab:comparison-full} and Table~\ref{tab:checklist}, three practical rules of thumb summarize this report's guidance:
+
+\begin{table}[H]
+\centering
+\caption{Practical decision rules for choosing among the structures compared in Chapter~\ref{ch:comparison}.}
+\label{tab:decision-rules}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.6cm}p{7.6cm}}
+\toprule
+\tblhead{If\ldots} & \tblhead{\ldots then consider} \\
+\midrule
+The array never changes & A prefix sum array (sum) or a sparse table (min/max); both give $\Oh{1}$ queries with no per-query tree traversal. \\
+Only point updates and sums are needed & A Fenwick Tree, for its smaller memory footprint and simpler implementation. \\
+Range updates, or a non-invertible merge (min, max, GCD, or a composite statistic as in Section~9.3), are needed & A Segment Tree, optionally with lazy propagation (Chapter~\ref{ch:lazy}). \\
+Implementation time is scarce and $\Oh{\sqrt n}$ is acceptable & Square-root decomposition, as a lower-risk fallback. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+The Segment Tree resolves the fundamental tension between fast range queries and fast point updates by recursively decomposing an array into a hierarchy of intervals, each summarized at a tree node (Chapter~\ref{ch:segtree}). This organization allows both operations to be performed in $\Oh{\log n}$ time after an $\Oh{n}$ build, as established by the overlap argument for queries (Theorem~\ref{thm:query-time}) and the single-path argument for updates (Lemma~\ref{lem:update-time}), and proved formally correct in Chapter~\ref{ch:correctness}.
+
+Because the only requirement on the merge operation is associativity (Equation~\eqref{eq:assoc}), the same structure generalizes immediately to range minimum, maximum, GCD, and a wide class of composite statistics (Chapter~\ref{ch:general}), and extends naturally to range updates through lazy propagation (Chapter~\ref{ch:lazy}) without sacrificing its $\Oh{\log n}$ guarantees (Lemma~\ref{lem:lazy-time}). This combination of generality and efficiency is what makes the Segment Tree applicable across domains as different as financial time series, live leaderboards, and scheduling systems (Chapter~\ref{ch:applications}).
+
+Chapter~\ref{ch:comparison} situated the Segment Tree among the other standard range-query structures: it trades some memory and implementation simplicity, relative to a Fenwick Tree, a prefix-sum array, or a sparse table, for substantially greater flexibility --- supporting any associative operation, and range updates, in one structure. As Table~\ref{tab:decision-rules} makes concrete, the right choice among these structures ultimately depends on what a given problem demands: whether the array is static or dynamic, whether the merge operation is invertible or idempotent, and whether updates are confined to single points or must span ranges. The Segment Tree's particular value lies in being the one structure in this report's comparison that performs acceptably, and often optimally, across essentially all of these cases at once.
+
+% ==================================================================
+\appendix
+\chapter{Reference Pseudocode}
+
+The following compact templates summarize the core routines described throughout the report, including the lazy-propagation extension of Chapter~\ref{ch:lazy}. They intentionally expose the merge operation and the identity element so that the same structure can be adapted to sums, minima, maxima, GCD, or another associative aggregate (Chapter~\ref{ch:general}).
+
+\begin{lstlisting}[caption={Core build, point-update, and range-query routines (no lazy propagation).}]
+build(node, lo, hi):
+    if lo == hi:
+        tree[node] = A[lo]
+        return
+    mid = (lo + hi) // 2
+    build(2*node, lo, mid)
+    build(2*node+1, mid+1, hi)
+    tree[node] = merge(tree[2*node], tree[2*node+1])
+
+update(node, lo, hi, pos, value):
+    if lo == hi:
+        tree[node] = value
+        return
+    mid = (lo + hi) // 2
+    if pos <= mid:
+        update(2*node, lo, mid, pos, value)
+    else:
+        update(2*node+1, mid+1, hi, pos, value)
+    tree[node] = merge(tree[2*node], tree[2*node+1])
+
+query(node, lo, hi, ql, qr):
+    if qr < lo or hi < ql:
+        return identity
+    if ql <= lo and hi <= qr:
+        return tree[node]
+    mid = (lo + hi) // 2
+    left = query(2*node, lo, mid, ql, qr)
+    right = query(2*node+1, mid+1, hi, ql, qr)
+    return merge(left, right)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Lazy-propagation extension for range-add / range-sum (Chapter~\ref{ch:lazy}).}]
+pushDown(node, lo, hi):
+    if lazy[node] == 0:
+        return
+    mid = (lo + hi) // 2
+    applyTag(2*node, lo, mid, lazy[node])
+    applyTag(2*node+1, mid+1, hi, lazy[node])
+    lazy[node] = 0
+
+applyTag(node, lo, hi, val):
+    tree[node] += val * (hi - lo + 1)
+    lazy[node] += val
+
+rangeUpdate(node, lo, hi, ul, ur, val):
+    if ur < lo or hi < ul:
+        return
+    if ul <= lo and hi <= ur:
+        applyTag(node, lo, hi, val)
+        return
+    pushDown(node, lo, hi)
+    mid = (lo + hi) // 2
+    rangeUpdate(2*node, lo, mid, ul, ur, val)
+    rangeUpdate(2*node+1, mid+1, hi, ul, ur, val)
+    tree[node] = tree[2*node] + tree[2*node+1]
+
+lazyQuery(node, lo, hi, ql, qr):
+    if qr < lo or hi < ql:
+        return 0
+    if ql <= lo and hi <= qr:
+        return tree[node]
+    pushDown(node, lo, hi)
+    mid = (lo + hi) // 2
+    left = lazyQuery(2*node, lo, mid, ql, qr)
+    right = lazyQuery(2*node+1, mid+1, hi, ql, qr)
+    return left + right
+\end{lstlisting}
+
+\chapter{Summary of Complexity}
+
+\begin{table}[H]
+\centering
+\caption{Final complexity reference for every structure discussed in this report.}
+\label{tab:final-complexity}
+\begin{tabular}{lccc}
+\toprule
+\tblhead{Structure} & \tblhead{Update} & \tblhead{Query} & \tblhead{Extra Space} \\
+\midrule
+Na\"ive array       & $\Oh{1}$       & $\Oh{n}$       & $\Oh{n}$ \\
+Prefix sum          & $\Oh{n}$       & $\Oh{1}$       & $\Oh{n}$ \\
+Sqrt decomposition   & $\Oh{\sqrt n}$ & $\Oh{\sqrt n}$ & $\Oh{n}$ \\
+Sparse table         & unsupported    & $\Oh{1}$       & $\Oh{n\log n}$ \\
+Fenwick tree          & $\Oh{\log n}$  & $\Oh{\log n}$  & $\Oh{n}$ \\
+\rowcolor{lightblue!30}
+Segment tree (point update) & $\Oh{\log n}$ & $\Oh{\log n}$ & $\Oh{n}$ tree storage \\
+\rowcolor{lightblue!30}
+Segment tree (lazy, range update) & $\Oh{\log n}$ & $\Oh{\log n}$ & $\Oh{n}$ tree $+$ lazy storage \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{thebibliography}{9}
+
+\bibitem{clrs}
+T.~H. Cormen, C.~E. Leiserson, R.~L. Rivest, and C.~Stein, \textit{Introduction to Algorithms}, MIT Press.
+
+\bibitem{cphandbook}
+A.~Laaksonen, \textit{Competitive Programmer's Handbook}.
+
+\bibitem{cpalgorithms}
+cp-algorithms, ``Segment Tree,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/segment_tree.html}
+
+\bibitem{cpalgorithms-fenwick}
+cp-algorithms, ``Fenwick Tree,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/fenwick.html}
+
+\bibitem{cpalgorithms-sparse}
+cp-algorithms, ``Sparse Table,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/sparse-table.html}
+
+\end{thebibliography}
+
+\end{document}

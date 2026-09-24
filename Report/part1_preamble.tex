@@ -1,0 +1,324 @@
+\documentclass[
+  11pt,
+  a4paper,
+  twoside=false,
+  numbers=noenddot,
+  headings=big,
+  parskip=half,
+  toc=bibliography,
+  toc=listof,
+  bibliography=totoc
+]{scrreprt}
+
+% ==================================================================
+%  PACKAGES
+% ==================================================================
+\usepackage[top=2.6cm, bottom=2.8cm, left=2.9cm, right=2.6cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[expansion=false]{microtype}
+\usepackage{amsmath, amssymb, mathtools}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage[font=small, labelfont={bf,sf}, labelsep=period, margin=0.6cm]{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds, shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage[hidelinks=false]{hyperref}
+\usepackage{scrlayer-scrpage}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black,
+  pdftitle={Segment Tree: Fast Range Queries and Dynamic Updates},
+  pdfauthor={Shayan Un Noor, Md. Shadman Shahriyar Shuvo, Md. Wasif Haque}
+}
+
+% ==================================================================
+%  COLOURS (same palette as the accompanying presentation)
+% ==================================================================
+\definecolor{navy}{RGB}{25,45,90}
+\definecolor{deepblue}{RGB}{40,80,150}
+\definecolor{lightblue}{RGB}{200,220,240}
+\definecolor{cream}{RGB}{252,246,225}
+\definecolor{gold}{RGB}{200,155,55}
+\definecolor{accentgreen}{RGB}{45,140,80}
+\definecolor{warningred}{RGB}{180,50,50}
+\definecolor{softgrey}{RGB}{242,244,248}
+
+% ==================================================================
+%  KOMA-SCRIPT HEADING STYLES  (replaces titlesec)
+% ==================================================================
+\setkomafont{disposition}{\sffamily\bfseries\color{navy}}
+\addtokomafont{chapter}{\Huge}
+\addtokomafont{section}{\Large}
+\addtokomafont{subsection}{\large\color{deepblue}}
+\addtokomafont{subsubsection}{\normalsize\color{deepblue}}
+\addtokomafont{paragraph}{\normalsize\color{deepblue}}
+\setkomafont{caption}{\small}
+\setkomafont{captionlabel}{\sffamily\bfseries\color{navy}}
+% Big gold number on its own line, title beneath, thin rule under it
+\renewcommand*{\chapterformat}{%
+  {\fontsize{54}{54}\selectfont\color{gold}\thechapter}\par\vspace{2pt}%
+}
+\renewcommand*{\chapterlinesformat}[3]{%
+  \parbox[b]{\linewidth}{%
+    \ifstr{#1}{}{}{#2}%
+    \ifstr{#1}{}{}{\par}%
+    {\raggedright #3\par}%
+    \vspace{5pt}\textcolor{navy}{\rule{\linewidth}{0.8pt}}%
+  }%
+}
+\renewcommand*{\chapterheadstartvskip}{\vspace*{-1.5\baselineskip}}
+\renewcommand*{\chapterheadendvskip}{\vspace*{1.3\baselineskip}}
+\RedeclareSectionCommand[beforeskip=1.6\baselineskip, afterskip=0.6\baselineskip]{section}
+\RedeclareSectionCommand[beforeskip=1.2\baselineskip, afterskip=0.4\baselineskip]{subsection}
+
+% ==================================================================
+%  HEADERS / FOOTERS
+% ==================================================================
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ihead{\small\sffamily\color{navy!80}\headmark}
+\ohead{\small\sffamily\color{navy!80}Segment Tree}
+\cfoot{\small\sffamily\color{navy!80}\pagemark}
+\setkomafont{pageheadfoot}{\sffamily\small}
+\setkomafont{pagenumber}{\sffamily\small}
+\addtokomafont{pageheadfoot}{\color{navy!80}}
+\automark[section]{chapter}
+\renewcommand*{\chaptermarkformat}{\chapapp~\thechapter\autodot\enskip}
+\renewcommand*{\sectionmarkformat}{\thesection\autodot\enskip}
+\setlength{\headheight}{15pt}
+\KOMAoptions{headsepline=0.4pt}
+\pagestyle{scrheadings}
+\renewcommand*{\chapterpagestyle}{scrplain}
+\clearscrplain
+\cfoot[\small\sffamily\color{navy!80}\pagemark]{\small\sffamily\color{navy!80}\pagemark}
+
+% ==================================================================
+%  LISTINGS
+% ==================================================================
+\lstdefinestyle{seg}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{deepblue}\bfseries,
+  commentstyle=\color{accentgreen}\itshape,
+  stringstyle=\color{warningred},
+  numberstyle=\tiny\color{navy!60},
+  frame=single,
+  rulecolor=\color{navy!40},
+  backgroundcolor=\color{lightblue!15},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  xleftmargin=10pt, xrightmargin=6pt,
+  aboveskip=0.8em, belowskip=0.4em
+}
+\lstset{style=seg}
+\lstdefinestyle{cpp}{
+  style=seg,
+  language=C++,
+  numbers=left,
+  numbersep=7pt,
+  xleftmargin=18pt,
+  morekeywords={size_t, vector, min, max, gcd},
+  showstringspaces=false,
+  tabsize=2
+}
+\renewcommand{\lstlistingname}{Listing}
+
+% ==================================================================
+%  TIKZ STYLES
+% ==================================================================
+\tikzset{
+  segnode/.style={draw=navy, thick, fill=lightblue!50, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  segleaf/.style={draw=navy, thick, fill=cream,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  segedge/.style={draw=navy!60, thick},
+  hitnode/.style={draw=accentgreen, very thick, fill=accentgreen!15, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  hitleaf/.style={draw=accentgreen, very thick, fill=accentgreen!15,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  pathnode/.style={draw=gold, very thick, fill=gold!22, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  pathleaf/.style={draw=gold, very thick, fill=gold!22,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  cutnode/.style={draw=navy!35, dashed, fill=softgrey, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize,
+    inner sep=1pt, text=navy!45},
+  cutleaf/.style={draw=navy!35, dashed, fill=softgrey,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize,
+    inner sep=1pt, text=navy!45},
+  warnnode/.style={draw=warningred, very thick, fill=warningred!12, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  flowbox/.style={draw=navy, thick, fill=lightblue!35, rounded corners=3pt,
+    minimum height=0.9cm, align=center, font=\small, inner sep=5pt, text width=3.2cm},
+  flowarrow/.style={-{Stealth[length=2.6mm]}, thick, navy!70},
+  idx/.style={font=\tiny, text=navy!70}
+}
+
+% ==================================================================
+%  CALL-OUT BOXES
+% ==================================================================
+\newtcolorbox{keyidea}[1][]{
+  enhanced, breakable,
+  colback=lightblue!25, colframe=deepblue, coltitle=white, fonttitle=\sffamily\bfseries,
+  title={Key Idea}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=deepblue, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+\newtcolorbox{remark}[1][]{
+  enhanced, breakable,
+  colback=cream, colframe=gold, coltitle=black, fonttitle=\sffamily\bfseries,
+  title={Remark}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=gold!70, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+\newtcolorbox{pitfall}[1][]{
+  enhanced, breakable,
+  colback=warningred!6, colframe=warningred, coltitle=white, fonttitle=\sffamily\bfseries,
+  title={Common Pitfall}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=warningred, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+
+% ---------- Theorem-like environments (own counters, per chapter) ----------
+\newcounter{lemma}[chapter]
+\newcounter{theorem}[chapter]
+\newcounter{definition}[chapter]
+\newcounter{example}[chapter]
+\renewcommand{\thelemma}{\thechapter.\arabic{lemma}}
+\renewcommand{\thetheorem}{\thechapter.\arabic{theorem}}
+\renewcommand{\thedefinition}{\thechapter.\arabic{definition}}
+\renewcommand{\theexample}{\thechapter.\arabic{example}}
+
+\newtcolorbox[use counter=theorem]{thm}[1][]{
+  enhanced, breakable, colback=softgrey, colframe=navy, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{navy}, coltitle=navy, colbacktitle=lightblue!45,
+  title={Theorem~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newtcolorbox[use counter=lemma]{lem}[1][]{
+  enhanced, breakable, colback=softgrey, colframe=deepblue, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{navy}, coltitle=navy, colbacktitle=lightblue!45,
+  title={Lemma~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newtcolorbox[use counter=definition]{defn}[1][]{
+  enhanced, breakable, colback=cream!70, colframe=gold, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{black}, coltitle=black, colbacktitle=gold!45,
+  title={Definition~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newenvironment{proof}[1][Proof]{\par\noindent{\bfseries\sffamily\color{navy}#1.}\enspace}{\hfill$\square$\par\medskip}
+\newenvironment{exmp}[1][]{%
+  \refstepcounter{example}%
+  \par\medskip\noindent{\bfseries\sffamily\color{deepblue}Example~\theexample\if\relax\detokenize{#1}\relax\else\ (#1)\fi.}\enspace}%
+  {\hfill$\triangleleft$\par\medskip}
+
+% ---------- Convenience macros ----------
+\newcommand{\Oh}[1]{O\!\left(#1\right)}
+\newcommand{\lgn}{\log n}
+\newcommand{\range}[2]{[#1,#2]}
+\DeclareMathOperator{\Sum}{sum}
+\DeclareMathOperator{\Upd}{update}
+\DeclareMathOperator{\Qry}{query}
+
+% ---------- Table helpers ----------
+\renewcommand{\arraystretch}{1.18}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\tblhead}[1]{\textbf{\sffamily #1}}
+
+% ---------- Distinct-looking floats ----------
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+% ==================================================================
+%  TITLE PAGE
+% ==================================================================
+\begin{document}
+\pagenumbering{roman}
+
+\begin{titlepage}
+  \thispagestyle{empty}
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[navy] (current page.north west) rectangle ([yshift=-10.4cm]current page.north east);
+    \fill[gold] ([yshift=-10.4cm]current page.north west) rectangle ([yshift=-10.65cm]current page.north east);
+    % decorative miniature tree
+    \begin{scope}[shift={([xshift=-4.6cm,yshift=-3.6cm]current page.north east)}, scale=0.55]
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt, font=\tiny, text=gold] (r) at (0,0) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (a) at (-1.6,-1.1) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (b) at ( 1.6,-1.1) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (c) at (-2.4,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (d) at (-0.8,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (e) at ( 0.8,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (f) at ( 2.4,-2.2) {};
+      \foreach \p/\q in {r/a,r/b,a/c,a/d,b/e,b/f} \draw[gold, thick] (\p)--(\q);
+    \end{scope}
+  \end{tikzpicture}
+
+  \vspace*{2.2cm}
+  {\color{white}\sffamily
+   {\large\bfseries\textls*[150]{TECHNICAL REPORT}}\\[1.1cm]
+   {\fontsize{40}{44}\selectfont\bfseries Segment Tree}\\[0.5cm]
+   {\Large Fast Range Queries and Dynamic Updates}}
+
+  \vspace{6.3cm}
+  \begin{flushleft}\sffamily
+    {\color{navy}\large\bfseries Prepared by}\\[0.5cm]
+    {\Large\textsc{Shayan Un Noor}} \hfill {\color{navy!70}Roll 2305024}\\[3pt]
+    {\Large\textsc{Md.\ Shadman Shahriyar Shuvo}} \hfill {\color{navy!70}Roll 2305025}\\[3pt]
+    {\Large\textsc{Md.\ Wasif Haque}} \hfill {\color{navy!70}Roll 2305029}\\[1.2cm]
+    \textcolor{gold}{\rule{\textwidth}{1.2pt}}\\[0.4cm]
+    {\color{navy!80}\normalsize Data Structures and Algorithms \quad$\bullet$\quad Course Report}
+  \end{flushleft}
+  \vfill
+\end{titlepage}
+
+% ==================================================================
+%  ABSTRACT
+% ==================================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\markboth{Abstract}{Abstract}
+
+Segment Trees are hierarchical data structures designed to efficiently process range queries and dynamic updates over an array. A na\"ive approach may require linear time for every range query or update, which becomes inefficient when the number of operations is large. A Segment Tree addresses this problem by recursively partitioning an array into smaller intervals and storing a summary of each interval at a tree node. This organization allows both point updates and range queries to be performed in $O(\log n)$ time after $O(n)$ preprocessing.
+
+This report presents the structure and construction of a Segment Tree, explains its update and query procedures using worked examples, derives their time complexities, and discusses its generalization to operations such as minimum, maximum, and greatest common divisor. It also introduces lazy propagation for range updates, provides a complete reference implementation, surveys representative applications, and compares Segment Trees with Fenwick Trees, sparse tables, and square-root decomposition.
+
+\bigskip
+\noindent\textbf{\sffamily Keywords:} segment tree, range query, point update, associative operation, lazy propagation, Fenwick tree, logarithmic time.
+
+\clearpage
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\markboth{Acknowledgements}{Acknowledgements}
+
+The authors would like to thank the course instructors for their guidance throughout this project and for the opportunity to study a data structure that sits at the intersection of elegant theory and everyday engineering practice. The worked examples in this report were checked against independent reference computations, and the presentation slides that accompany it share the colour palette used in the figures below.
+
+\clearpage
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}

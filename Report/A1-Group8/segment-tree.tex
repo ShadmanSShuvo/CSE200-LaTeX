@@ -1,0 +1,1567 @@
+\documentclass[
+  11pt,
+  a4paper,
+  twoside=false,
+  numbers=noenddot,
+  headings=big,
+  parskip=half,
+  toc=bibliography,
+  toc=listof,
+  bibliography=totoc
+]{scrreprt}
+
+% ==================================================================
+%  PACKAGES
+% ==================================================================
+\usepackage[top=2.6cm, bottom=2.8cm, left=2.9cm, right=2.6cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[expansion=false]{microtype}
+\usepackage{amsmath, amssymb, mathtools}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage[font=small, labelfont={bf,sf}, labelsep=period, margin=0.6cm]{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds, shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage[hidelinks=false]{hyperref}
+\usepackage{scrlayer-scrpage}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black,
+  pdftitle={Segment Tree: Fast Range Queries and Dynamic Updates},
+  pdfauthor={Shayan Un Noor, Md. Shadman Shahriyar Shuvo, Md. Wasif Haque}
+}
+
+% ==================================================================
+%  COLOURS (same palette as the accompanying presentation)
+% ==================================================================
+\definecolor{navy}{RGB}{25,45,90}
+\definecolor{deepblue}{RGB}{40,80,150}
+\definecolor{lightblue}{RGB}{200,220,240}
+\definecolor{cream}{RGB}{252,246,225}
+\definecolor{gold}{RGB}{200,155,55}
+\definecolor{accentgreen}{RGB}{45,140,80}
+\definecolor{warningred}{RGB}{180,50,50}
+\definecolor{softgrey}{RGB}{242,244,248}
+
+% ==================================================================
+%  KOMA-SCRIPT HEADING STYLES  (replaces titlesec)
+% ==================================================================
+\setkomafont{disposition}{\sffamily\bfseries\color{navy}}
+\addtokomafont{chapter}{\Huge}
+\addtokomafont{section}{\Large}
+\addtokomafont{subsection}{\large\color{deepblue}}
+\addtokomafont{subsubsection}{\normalsize\color{deepblue}}
+\addtokomafont{paragraph}{\normalsize\color{deepblue}}
+\setkomafont{caption}{\small}
+\setkomafont{captionlabel}{\sffamily\bfseries\color{navy}}
+% Big gold number on its own line, title beneath, thin rule under it
+\renewcommand*{\chapterformat}{%
+  {\fontsize{54}{54}\selectfont\color{gold}\thechapter}\par\vspace{2pt}%
+}
+\renewcommand*{\chapterlinesformat}[3]{%
+  \parbox[b]{\linewidth}{%
+    \ifstr{#1}{}{}{#2}%
+    \ifstr{#1}{}{}{\par}%
+    {\raggedright #3\par}%
+    \vspace{5pt}\textcolor{navy}{\rule{\linewidth}{0.8pt}}%
+  }%
+}
+\renewcommand*{\chapterheadstartvskip}{\vspace*{-1.5\baselineskip}}
+\renewcommand*{\chapterheadendvskip}{\vspace*{1.3\baselineskip}}
+\RedeclareSectionCommand[beforeskip=1.6\baselineskip, afterskip=0.6\baselineskip]{section}
+\RedeclareSectionCommand[beforeskip=1.2\baselineskip, afterskip=0.4\baselineskip]{subsection}
+
+% ==================================================================
+%  HEADERS / FOOTERS
+% ==================================================================
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ihead{\small\sffamily\color{navy!80}\headmark}
+\ohead{\small\sffamily\color{navy!80}Segment Tree}
+\cfoot{\small\sffamily\color{navy!80}\pagemark}
+\setkomafont{pageheadfoot}{\sffamily\small}
+\setkomafont{pagenumber}{\sffamily\small}
+\addtokomafont{pageheadfoot}{\color{navy!80}}
+\automark[section]{chapter}
+\renewcommand*{\chaptermarkformat}{\chapapp~\thechapter\autodot\enskip}
+\renewcommand*{\sectionmarkformat}{\thesection\autodot\enskip}
+\setlength{\headheight}{15pt}
+\KOMAoptions{headsepline=0.4pt}
+\pagestyle{scrheadings}
+\renewcommand*{\chapterpagestyle}{scrplain}
+\clearscrplain
+\cfoot[\small\sffamily\color{navy!80}\pagemark]{\small\sffamily\color{navy!80}\pagemark}
+
+% ==================================================================
+%  LISTINGS
+% ==================================================================
+\lstdefinestyle{seg}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{deepblue}\bfseries,
+  commentstyle=\color{accentgreen}\itshape,
+  stringstyle=\color{warningred},
+  numberstyle=\tiny\color{navy!60},
+  frame=single,
+  rulecolor=\color{navy!40},
+  backgroundcolor=\color{lightblue!15},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  xleftmargin=10pt, xrightmargin=6pt,
+  aboveskip=0.8em, belowskip=0.4em
+}
+\lstset{style=seg}
+\lstdefinestyle{cpp}{
+  style=seg,
+  language=C++,
+  numbers=left,
+  numbersep=7pt,
+  xleftmargin=18pt,
+  morekeywords={size_t, vector, min, max, gcd},
+  showstringspaces=false,
+  tabsize=2
+}
+\renewcommand{\lstlistingname}{Listing}
+
+% ==================================================================
+%  TIKZ STYLES
+% ==================================================================
+\tikzset{
+  segnode/.style={draw=navy, thick, fill=lightblue!50, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  segleaf/.style={draw=navy, thick, fill=cream,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  segedge/.style={draw=navy!60, thick},
+  hitnode/.style={draw=accentgreen, very thick, fill=accentgreen!15, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  hitleaf/.style={draw=accentgreen, very thick, fill=accentgreen!15,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  pathnode/.style={draw=gold, very thick, fill=gold!22, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  pathleaf/.style={draw=gold, very thick, fill=gold!22,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  cutnode/.style={draw=navy!35, dashed, fill=softgrey, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize,
+    inner sep=1pt, text=navy!45},
+  cutleaf/.style={draw=navy!35, dashed, fill=softgrey,
+    minimum width=0.8cm, minimum height=0.7cm, align=center, font=\scriptsize,
+    inner sep=1pt, text=navy!45},
+  warnnode/.style={draw=warningred, very thick, fill=warningred!12, rounded corners=2pt,
+    minimum width=1.3cm, minimum height=0.7cm, align=center, font=\scriptsize, inner sep=1pt},
+  flowbox/.style={draw=navy, thick, fill=lightblue!35, rounded corners=3pt,
+    minimum height=0.9cm, align=center, font=\small, inner sep=5pt, text width=3.2cm},
+  flowarrow/.style={-{Stealth[length=2.6mm]}, thick, navy!70},
+  idx/.style={font=\tiny, text=navy!70}
+}
+
+% ==================================================================
+%  CALL-OUT BOXES
+% ==================================================================
+\newtcolorbox{keyidea}[1][]{
+  enhanced, breakable,
+  colback=lightblue!25, colframe=deepblue, coltitle=white, fonttitle=\sffamily\bfseries,
+  title={Key Idea}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=deepblue, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+\newtcolorbox{remark}[1][]{
+  enhanced, breakable,
+  colback=cream, colframe=gold, coltitle=black, fonttitle=\sffamily\bfseries,
+  title={Remark}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=gold!70, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+\newtcolorbox{pitfall}[1][]{
+  enhanced, breakable,
+  colback=warningred!6, colframe=warningred, coltitle=white, fonttitle=\sffamily\bfseries,
+  title={Common Pitfall}, attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=warningred, sharp corners}, boxrule=0.6pt, arc=2pt,
+  left=6pt, right=6pt, top=8pt, bottom=5pt, #1
+}
+
+% ---------- Theorem-like environments (own counters, per chapter) ----------
+\newcounter{lemma}[chapter]
+\newcounter{theorem}[chapter]
+\newcounter{definition}[chapter]
+\newcounter{example}[chapter]
+\renewcommand{\thelemma}{\thechapter.\arabic{lemma}}
+\renewcommand{\thetheorem}{\thechapter.\arabic{theorem}}
+\renewcommand{\thedefinition}{\thechapter.\arabic{definition}}
+\renewcommand{\theexample}{\thechapter.\arabic{example}}
+
+\newtcolorbox[use counter=theorem]{thm}[1][]{
+  enhanced, breakable, colback=softgrey, colframe=navy, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{navy}, coltitle=navy, colbacktitle=lightblue!45,
+  title={Theorem~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newtcolorbox[use counter=lemma]{lem}[1][]{
+  enhanced, breakable, colback=softgrey, colframe=deepblue, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{navy}, coltitle=navy, colbacktitle=lightblue!45,
+  title={Lemma~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newtcolorbox[use counter=definition]{defn}[1][]{
+  enhanced, breakable, colback=cream!70, colframe=gold, boxrule=0.5pt, arc=1pt,
+  fonttitle=\sffamily\bfseries\color{black}, coltitle=black, colbacktitle=gold!45,
+  title={Definition~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi}
+}
+\newenvironment{proof}[1][Proof]{\par\noindent{\bfseries\sffamily\color{navy}#1.}\enspace}{\hfill$\square$\par\medskip}
+\newenvironment{exmp}[1][]{%
+  \refstepcounter{example}%
+  \par\medskip\noindent{\bfseries\sffamily\color{deepblue}Example~\theexample\if\relax\detokenize{#1}\relax\else\ (#1)\fi.}\enspace}%
+  {\hfill$\triangleleft$\par\medskip}
+
+% ---------- Convenience macros ----------
+\newcommand{\Oh}[1]{O\!\left(#1\right)}
+\newcommand{\lgn}{\log n}
+\newcommand{\range}[2]{[#1,#2]}
+\DeclareMathOperator{\Sum}{sum}
+\DeclareMathOperator{\Upd}{update}
+\DeclareMathOperator{\Qry}{query}
+
+% ---------- Table helpers ----------
+\renewcommand{\arraystretch}{1.18}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\tblhead}[1]{\textbf{\sffamily #1}}
+
+% ---------- Distinct-looking floats ----------
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+% ==================================================================
+%  TITLE PAGE
+% ==================================================================
+\begin{document}
+\pagenumbering{roman}
+
+\begin{titlepage}
+  \thispagestyle{empty}
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[navy] (current page.north west) rectangle ([yshift=-10.4cm]current page.north east);
+    \fill[gold] ([yshift=-10.4cm]current page.north west) rectangle ([yshift=-10.65cm]current page.north east);
+    % decorative miniature tree
+    \begin{scope}[shift={([xshift=-4.6cm,yshift=-3.6cm]current page.north east)}, scale=0.55]
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt, font=\tiny, text=gold] (r) at (0,0) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (a) at (-1.6,-1.1) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (b) at ( 1.6,-1.1) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (c) at (-2.4,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (d) at (-0.8,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (e) at ( 0.8,-2.2) {};
+      \node[circle, draw=gold, thick, fill=navy, inner sep=1.5pt] (f) at ( 2.4,-2.2) {};
+      \foreach \p/\q in {r/a,r/b,a/c,a/d,b/e,b/f} \draw[gold, thick] (\p)--(\q);
+    \end{scope}
+  \end{tikzpicture}
+
+  \vspace*{2.2cm}
+  {\color{white}\sffamily
+   {\small\bfseries\textls*[150]{TECHNICAL REPORT}}\\[1.1cm]
+   {\fontsize{40}{44}\selectfont\bfseries Segment Tree}\\[0.5cm]
+   {\Large Fast Range Queries and Dynamic Updates}}
+
+  \vspace{6.3cm}
+  \begin{flushleft}\sffamily
+    {\color{navy}\large\bfseries Prepared by}\\[0.5cm]
+    {\Large\textsc{Shayan Un Noor}} \hfill {\color{navy!70} 2305024}\\[3pt]
+    {\Large\textsc{Md.\ Shadman Shahriyar Shuvo}} \hfill {\color{navy!70} 2305025}\\[3pt]
+    {\Large\textsc{Md.\ Wasif Haque}} \hfill {\color{navy!70} 2305029}\\[1.2cm]
+    \textcolor{gold}{\rule{\textwidth}{1.2pt}}\\[0.4cm]
+    {\color{navy!80}\normalsize CSE200 \quad$\bullet$\quad Technical Writing and Presentation}
+  \end{flushleft}
+  \vfill
+\end{titlepage}
+
+% ==================================================================
+%  ABSTRACT
+% ==================================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\markboth{Abstract}{Abstract}
+
+Segment Trees are hierarchical data structures designed to efficiently process range queries and dynamic updates over an array. A na\"ive approach may require linear time for every range query or update, which becomes inefficient when the number of operations is large. A Segment Tree addresses this problem by recursively partitioning an array into smaller intervals and storing a summary of each interval at a tree node. This organization allows both point updates and range queries to be performed in $O(\log n)$ time after $O(n)$ preprocessing.
+
+This report presents the structure and construction of a Segment Tree, explains its update and query procedures using worked examples, derives their time complexities, and discusses its generalization to operations such as minimum, maximum, and greatest common divisor. It also introduces lazy propagation for range updates, provides a complete reference implementation, surveys representative applications, and compares Segment Trees with Fenwick Trees, sparse tables, and square-root decomposition.
+
+\bigskip
+\noindent\textbf{\sffamily Keywords:} segment tree, range query, point update, associative operation, lazy propagation, Fenwick tree, logarithmic time.
+
+\clearpage
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\markboth{Acknowledgements}{Acknowledgements}
+
+The authors would like to thank the course instructors for their guidance throughout this project and for the opportunity to study a practical data structure with a strong theoretical foundation. The worked examples in this report were checked against independent reference computations, and the presentation slides that accompany it share the colour palette used in the figures below.
+
+\clearpage
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+% ============================================================
+\chapter{Introduction}
+\label{ch:intro}
+
+Many computational systems operate on data that changes continuously, while their users still need aggregate information over contiguous ranges. For example, a system may need the total traded value of instruments 200 through 450, the minimum temperature recorded between 2 pm and 5 pm, or the number of available seats in a given interval. Answering such questions efficiently while the underlying data changes is the central problem studied in this report.
+
+The Segment Tree is a standard data structure for this class of problems. It recursively partitions an array into intervals and stores an aggregate summary for each interval, allowing a broad family of range operations to be supported efficiently.\cite{clrs,cpalgorithms} This chapter motivates the problem, states the objective of the report, and outlines how the remaining chapters are organized.
+
+\section{Motivation}\label{sec:motivation}
+Many computational problems require repeatedly answering queries over a contiguous portion of a dynamically changing dataset. Consider a system tracking $n$ financial instruments, where array $A$ stores their current prices. At 9:31 AM, right after the market opens, 20{,}000 prices may change every second, while the system must still answer, instantly, ``what is the total value of instruments $l$ through $r$?'' The two fundamental operations required are therefore
+
+\begin{equation}
+\operatorname{sum}(l,r) = \sum_{i=l}^{r} A[i]
+\label{eq:sum}
+\end{equation}
+
+and
+
+\begin{equation}
+\operatorname{update}(i,v),
+\label{eq:update}
+\end{equation}
+
+where $A[i]$ is modified to the value $v$.
+
+The same pattern appears in very different settings. A multiplayer game must maintain a live leaderboard while thousands of players finish matches. A ticketing platform must find contiguous free seats while other customers are booking. A monitoring dashboard must report the maximum latency of the last five minutes while new measurements stream in. In each case the system is \emph{summarizing a range and then changing part of it}, over and over.
+
+\section{Dynamic Range Query Problem}
+The difficulty arises from the interaction between queries and updates. If the array is scanned directly, a query in Equation~\eqref{eq:sum} requires $O(n)$ time. If instead a running total is maintained, every update in Equation~\eqref{eq:update} requires $O(n)$ work to keep that total valid. Neither approach scales when both operations occur frequently and at large volume: keeping the sum fresh after every update costs $O(n)$ per update, while keeping updates instantaneous costs $O(n)$ per query. This tension --- fast queries versus fast updates --- appears in any large system that must \emph{summarize a range and then change part of it}: stock feeds, leaderboards, and analytics dashboards all face it constantly.
+
+\begin{keyidea}
+Static data can be preprocessed once and queried forever. \emph{Dynamic} data cannot: every preprocessing decision made to speed up queries must be paid for again each time the data changes. The Segment Tree is a principled compromise that keeps both costs logarithmic.
+\end{keyidea}
+
+\section{Objective}
+This report presents the Segment Tree as a data structure that resolves this tension, achieving $O(\log n)$ time for both operations after an $O(n)$ preprocessing step. We derive its structure, construction, update and query algorithms, and their time complexities; work through a concrete numerical example; generalize the structure to other associative operations; and compare it against alternative approaches. Concretely, the report aims to:
+
+\begin{enumerate}[nosep]
+  \item define the range-query problem precisely and expose why simple solutions fail (Chapter~\ref{ch:problem});
+  \item introduce the Segment Tree, its invariants, and its array layout (Chapter~\ref{ch:segtree});
+  \item give and analyse algorithms for building, updating, and querying the tree (Sections~\ref{sec:build}--\ref{sec:query});
+  \item show how a single change of the merge operation yields range minimum, maximum, GCD and more (Chapter~\ref{ch:general});
+  \item extend the structure to range updates through lazy propagation (Chapter~\ref{ch:lazy});
+  \item provide a reference implementation (Chapter~\ref{ch:implementation}); and
+  \item place the structure among its alternatives and applications (Chapters~\ref{ch:applications}--\ref{ch:practical}).
+\end{enumerate}
+
+\section{Scope and Assumptions}
+Throughout the report we make the following assumptions, unless a section states otherwise.
+
+\begin{itemize}[nosep]
+  \item The array $A$ has a fixed length $n \ge 1$ and is indexed from $1$ to $n$.
+  \item The merge operation is associative, has an identity element, and can be evaluated in $O(1)$ time.
+  \item Updates replace a single value (\emph{point update}). Range updates are treated separately in Chapter~\ref{ch:lazy}.
+  \item Complexities are stated in the word-RAM model, counting one elementary arithmetic or comparison operation as one step.
+\end{itemize}
+
+\section{Notation}
+Table~\ref{tab:notation} collects the symbols used throughout the report.
+
+\begin{table}[h]
+\centering
+\caption{Summary of notation.}
+\label{tab:notation}
+\begin{tabularx}{\textwidth}{@{}>{\centering\arraybackslash}p{2.6cm} Y@{}}
+\toprule
+\tblhead{Symbol} & \tblhead{Meaning} \\
+\midrule
+$A=[a_1,\dots,a_n]$ & The underlying array of $n$ elements (1-indexed). \\
+$Q(l,r)$ & Range query over the closed interval $[l,r]$. \\
+$\operatorname{update}(i,v)$ & Point update: assign $A[i]\leftarrow v$. \\
+$[lo,hi]$ & The interval represented by a tree node. \\
+$mid$ & Midpoint $\lfloor (lo+hi)/2\rfloor$ of a node's interval. \\
+$S(l,r)$ & Summary value stored for the interval $[l,r]$. \\
+$f$, $e$ & Associative merge operation and its identity element. \\
+$h$ & Height of the tree, $h=\lceil\log_2 n\rceil$. \\
+$q$ & Total number of operations (queries plus updates). \\
+$P[i]$ & Prefix sum $\sum_{j=1}^{i}A[j]$. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Organization of the Report}
+Chapter~\ref{ch:problem} formalizes the problem and studies the two baseline solutions. Chapter~\ref{ch:segtree} introduces the Segment Tree and its structural properties. Sections~\ref{sec:build}, \ref{sec:update} and \ref{sec:query} treat construction, point update, and range query in turn, each with a worked example on the running array
+\[
+A = [2,\,1,\,5,\,3,\,7,\,4,\,6,\,8].
+\]
+Chapter~\ref{ch:general} generalizes the merge operation, and Chapter~\ref{ch:lazy} adds lazy propagation. Chapter~\ref{ch:implementation} gives a complete implementation. Chapters~\ref{ch:applications} and \ref{ch:comparison} discuss applications and alternatives, Chapter~\ref{ch:practical} consolidates complexity results, and Chapter~\ref{ch:conclusion} concludes.
+
+% ============================================================
+\chapter{The Range Query Problem}
+\label{ch:problem}
+
+Before introducing the Segment Tree it is worth understanding exactly why the problem is hard. This chapter defines the problem formally, analyses the two obvious solutions, and shows that they sit at opposite ends of a trade-off that neither can escape.
+
+\section{Problem Definition}
+Let
+
+\begin{equation}
+A = [a_1, a_2, \ldots, a_n]
+\end{equation}
+
+be an array of $n$ elements. A range-sum query is defined as
+
+\begin{equation}
+Q(l,r) = \sum_{i=l}^{r} a_i, \qquad 1 \le l \le r \le n,
+\end{equation}
+
+and a point update changes a single element,
+
+\begin{equation}
+a_i \leftarrow v.
+\end{equation}
+
+A workload is a sequence of $q$ operations, each of which is either a query or an update. The goal is to process the entire workload in as little total time as possible, and preferably to bound the cost of \emph{each} operation individually.
+
+\begin{defn}[Dynamic range-query problem]
+Given an array $A$ of length $n$, maintain a data structure supporting (i)~$Q(l,r)$, returning an aggregate of $A[l..r]$, and (ii)~$\operatorname{update}(i,v)$, setting $A[i]\leftarrow v$, such that the two operations may be interleaved in any order.
+\end{defn}
+
+\section{Na\"ive Approach}
+The most direct way to answer $Q(l,r)$ is to scan the range explicitly:
+
+\begin{lstlisting}
+sum(l, r):
+    result = 0
+    for i = l to r:
+        result += A[i]
+    return result
+\end{lstlisting}
+
+For a range of length $r-l+1$, this costs $O(r-l+1)$ time, or $O(n)$ in the worst case:
+
+\begin{equation}
+T_{\text{query}}(n) = O(n).
+\end{equation}
+
+A point update, by contrast, is trivially $O(1)$ under this scheme, since only $A[i]$ is written.
+
+\begin{exmp}[Cost of scanning]
+On $A=[2,1,5,3,7,4,6,8]$, the query $Q(2,7)$ reads six elements: $1+5+3+7+4+6=26$. On an array with $n=10^6$ elements the same query may read up to a million elements, and if $10^5$ such queries arrive per second the system must perform $10^{11}$ element reads per second, which is far beyond what a single core can sustain.
+\end{exmp}
+
+\section{Limitation of Prefix Precomputation}
+An obvious optimization is to precompute prefix sums,
+
+\begin{equation}
+P[i] = \sum_{j=1}^{i} A[j],
+\end{equation}
+
+so that any range sum can be answered in constant time via
+
+\begin{equation}
+Q(l,r) = P[r] - P[l-1].
+\end{equation}
+
+For the running example the prefix array is
+\[
+P = [2,\,3,\,8,\,11,\,18,\,22,\,28,\,36],
+\]
+and, for instance, $Q(3,7) = P[7]-P[2] = 28-3 = 25$ on the original array.
+
+This makes queries $O(1)$, but it introduces the opposite problem: whenever a single element $A[i]$ changes, every prefix sum $P[j]$ for $j \ge i$ becomes invalid, so an update costs $O(n)$ to restore correctness. Figure~\ref{fig:prefixupdate} shows the damage caused by one update.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.15cm, y=1cm]
+  % original
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,1.1) {$A$ before};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,0.0) {$P$ before};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,-1.6) {$A$ after};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,-2.7) {$P$ after};
+  \foreach \i/\a/\p/\b/\q in {1/2/2/2/2, 2/1/3/1/3, 3/5/8/5/8, 4/3/11/10/18, 5/7/18/7/25, 6/4/22/4/29, 7/6/28/6/35, 8/8/36/8/43} {
+    \node[segleaf] at (\i,1.1) {\a};
+    \node[segleaf] at (\i,0.0) {\p};
+  }
+  % after: unchanged cells cream, changed cells red
+  \foreach \i/\a in {1/2,2/1,3/5,5/7,6/4,7/6,8/8} { \node[segleaf] at (\i,-1.6) {\a}; }
+  \node[warnnode, minimum width=0.8cm] at (4,-1.6) {10};
+  \foreach \i/\p in {1/2,2/3,3/8} { \node[segleaf] at (\i,-2.7) {\p}; }
+  \foreach \i/\p in {4/18,5/25,6/29,7/35,8/43} { \node[warnnode, minimum width=0.8cm] at (\i,-2.7) {\p}; }
+  \draw[-{Stealth}, thick, warningred]
+    (4,0.85) to[bend left]
+    node[pos=0.1, right, font=\scriptsize, text=warningred] {update$(4,10)$}
+    (4,-1.15);
+  \foreach \i in {1,...,8} \node[idx] at (\i,1.75) {\i};
+\end{tikzpicture}
+\caption{A single point update $A[4]\leftarrow 10$ invalidates five prefix sums (shaded red), $P[4]$ through $P[8]$. In general an update at index $i$ invalidates $n-i+1$ entries.}
+\label{fig:prefixupdate}
+\end{figure}
+
+This gives the fundamental trade-off summarized in Table~\ref{tab:tradeoff}.
+
+\begin{table}[h]
+\centering
+\caption{Trade-off between query and update cost across approaches.}
+\label{tab:tradeoff}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Query} & \textbf{Point Update} \\
+\midrule
+Na\"ive array  & $O(n)$      & $O(1)$ \\
+Prefix sum     & $O(1)$      & $O(n)$ \\
+Segment Tree   & $O(\log n)$ & $O(\log n)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The Cost Trade-off Visualized}
+The situation can be seen more clearly by plotting the cost per operation of each approach as $n$ grows. In Figure~\ref{fig:tradeoffplot} the na\"ive query cost and the prefix-sum update cost both grow linearly, while the Segment Tree cost for either operation stays close to the horizontal axis.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.82\textwidth, height=6.2cm,
+  xlabel={Array size $n$}, ylabel={Elementary steps per operation},
+  xmin=0, xmax=1024, ymin=0, ymax=1100,
+  grid=both, grid style={line width=.1pt, draw=navy!12}, major grid style={line width=.2pt, draw=navy!25},
+  legend pos=north west, legend style={font=\footnotesize, draw=navy!40, fill=white, fill opacity=0.9, text opacity=1},
+  label style={font=\small}, tick label style={font=\footnotesize},
+  every axis plot/.append style={thick}
+]
+\addplot[color=warningred, domain=1:1024, samples=2] {x};
+\addlegendentry{Na\"ive query / prefix update: $n$}
+\addplot[color=deepblue, domain=2:1024, samples=100] {ln(x)/ln(2)};
+\addlegendentry{Segment Tree: $\log_2 n$}
+\end{axis}
+\end{tikzpicture}
+\caption{Cost per operation as a function of $n$. The linear cost of the two baselines eventually dominates, while the logarithmic Segment Tree cost is almost invisible on this scale.}
+\label{fig:tradeoffplot}
+\end{figure}
+
+\section{Need for a Dynamic Data Structure}
+Neither extreme is acceptable when queries and updates are interleaved at scale. What is needed is a structure that balances both costs rather than optimizing one at the expense of the other. The Segment Tree achieves exactly this balance by decomposing the array into a hierarchy of intervals and storing a summary for each one, so that both operations touch only $O(\log n)$ nodes instead of $O(n)$ or $O(1)$-with-a-hidden-$O(n)$-cost elsewhere.
+
+\begin{remark}
+A useful way to think about the trade-off is as a question of \emph{where} the work is done. The na\"ive array does all its work at query time; the prefix array does all its work at update time. The Segment Tree deliberately spreads the work: each update pays a small amount to keep a hierarchy of partial answers fresh, and each query pays a small amount to combine a handful of those partial answers.
+\end{remark}
+
+% ============================================================
+\chapter{The Segment Tree}
+\label{ch:segtree}
+
+This chapter introduces the Segment Tree as a data structure: what it stores, how its nodes correspond to intervals, and which structural properties make its operations efficient.
+
+\section{Basic Idea}
+A Segment Tree is a binary tree built over an array, where each node represents a contiguous sub-interval of the array and stores a summary value for that interval. The root represents the entire array; each internal node's interval is split into two halves, assigned to its left and right children; and each leaf represents a single array element. Instead of touching the whole array on every operation, the tree recursively splits the problem in half, solves each half, and combines the two answers --- and only $O(\log n)$ splits are ever needed to reach any particular piece.
+
+\begin{keyidea}
+A Segment Tree precomputes the answer to a carefully chosen family of $\approx 2n$ intervals --- the \emph{dyadic} intervals obtained by repeated halving --- such that every range $[l,r]$ can be written as a disjoint union of $O(\log n)$ of them.
+\end{keyidea}
+
+\section{Structure of a Segment Tree}
+For an array of size $n$, the tree has height $h = \lceil \log_2 n \rceil$, and consequently $O(n)$ nodes in total (at most $\sim\!2n$ for a complete binary tree representation). Each level of the tree partitions $[1,n]$ into disjoint, contiguous sub-intervals that together cover the whole array exactly once.
+
+Table~\ref{tab:levels} shows how the intervals at each level of the tree for $n=8$ partition the array.
+
+\begin{table}[h]
+\centering
+\caption{Level-by-level partition of $[1,8]$ in the Segment Tree of the running example.}
+\label{tab:levels}
+\begin{tabular}{clcc}
+\toprule
+\tblhead{Level} & \tblhead{Intervals at this level} & \tblhead{Nodes} & \tblhead{Interval length} \\
+\midrule
+0 & $[1,8]$ & 1 & 8 \\
+1 & $[1,4],\ [5,8]$ & 2 & 4 \\
+2 & $[1,2],\ [3,4],\ [5,6],\ [7,8]$ & 4 & 2 \\
+3 & $[1,1],\ [2,2],\ \dots,\ [8,8]$ & 8 & 1 \\
+\midrule
+\multicolumn{2}{r}{\textbf{Total}} & \textbf{15} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Interval Representation}
+Each node is identified by the interval $[lo, hi]$ it represents. If $lo = hi$, the node is a leaf corresponding to $A[lo]$. Otherwise, letting
+
+\begin{equation}
+mid = \left\lfloor \frac{lo+hi}{2} \right\rfloor,
+\end{equation}
+
+the node's left child represents $[lo, mid]$ and its right child represents $[mid+1, hi]$.
+
+\section{Stored Information and Merge Operation}
+For every node representing interval $[l,r]$, define the stored summary as
+
+\begin{equation}
+S(l,r) = \sum_{i=l}^{r} A[i].
+\end{equation}
+
+Given the midpoint $m = \lfloor (l+r)/2 \rfloor$, the summary satisfies the recursive relation
+
+\begin{equation}
+S(l,r) = S(l,m) + S(m+1,r).
+\label{eq:merge}
+\end{equation}
+
+This is the \emph{merge operation}: a parent's summary is obtained by combining its two children's summaries. For sum queries the merge is addition, but as shown in Chapter~\ref{ch:general}, any associative operation can be substituted in its place.
+
+\section{Structural Properties}
+Several simple facts about the tree are used repeatedly in later chapters. We state them here with short proofs.
+
+\begin{lem}[Partition property]\label{lem:partition}
+For every level $d$ of the tree, the intervals of the nodes at level $d$ are pairwise disjoint, and their union is contained in $[1,n]$.
+\end{lem}
+\begin{proof}
+By induction on $d$. At level $0$ there is a single node $[1,n]$. If the claim holds at level $d$, each node $[lo,hi]$ at that level is replaced at level $d+1$ by the two disjoint intervals $[lo,mid]$ and $[mid+1,hi]$ whose union is $[lo,hi]$; nodes with $lo=hi$ have no children. Disjointness and containment are therefore preserved.
+\end{proof}
+
+\begin{lem}[Height]\label{lem:height}
+A Segment Tree over $n\ge 1$ elements has height $\lceil \log_2 n\rceil$.
+\end{lem}
+\begin{proof}
+Each split at least halves the interval length, rounding the larger half up: an interval of length $m$ splits into lengths $\lceil m/2\rceil$ and $\lfloor m/2\rfloor$. After $d$ splits the longest interval therefore has length at most $\lceil n/2^{d}\rceil$, which equals $1$ exactly when $2^d\ge n$, i.e.\ when $d\ge\lceil\log_2 n\rceil$.
+\end{proof}
+
+\begin{lem}[Node count]\label{lem:nodes}
+A Segment Tree over $n$ elements has exactly $2n-1$ nodes.
+\end{lem}
+\begin{proof}
+The tree is a full binary tree (every internal node has exactly two children) with $n$ leaves. In any full binary tree the number of internal nodes is one less than the number of leaves, so the total is $n+(n-1)=2n-1$.
+\end{proof}
+
+For $n=8$ this gives $15$ nodes, matching Table~\ref{tab:levels}.
+
+\section{Array Layout and Index Arithmetic}
+Segment Trees are almost always stored in a flat array rather than with explicit pointers. Numbering the root as node $1$, the children of node $k$ are
+
+\begin{equation}
+\operatorname{left}(k) = 2k, \qquad \operatorname{right}(k) = 2k+1, \qquad \operatorname{parent}(k)=\lfloor k/2\rfloor.
+\label{eq:heap}
+\end{equation}
+
+This is the same layout used by binary heaps, and it removes the memory overhead of child pointers. Figure~\ref{fig:layout} shows the correspondence for the running example.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.0cm, y=1cm]
+  % tree with node numbers
+  \node[segnode, minimum width=1.0cm] (n1) at (6,3.3) {\textbf{1}};
+  \node[segnode, minimum width=1.0cm] (n2) at (3,2.2) {\textbf{2}};
+  \node[segnode, minimum width=1.0cm] (n3) at (9,2.2) {\textbf{3}};
+  \node[segnode, minimum width=1.0cm] (n4) at (1.5,1.1) {\textbf{4}};
+  \node[segnode, minimum width=1.0cm] (n5) at (4.5,1.1) {\textbf{5}};
+  \node[segnode, minimum width=1.0cm] (n6) at (7.5,1.1) {\textbf{6}};
+  \node[segnode, minimum width=1.0cm] (n7) at (10.5,1.1) {\textbf{7}};
+  \foreach \i/\x in {8/0.75, 9/2.25, 10/3.75, 11/5.25, 12/6.75, 13/8.25, 14/9.75, 15/11.25}
+    \node[segleaf, minimum width=1.0cm] (n\i) at (\x,0) {\textbf{\i}};
+  \foreach \p/\c in {1/2,1/3,2/4,2/5,3/6,3/7,4/8,4/9,5/10,5/11,6/12,6/13,7/14,7/15}
+    \draw[segedge] (n\p)--(n\c);
+  % flat array beneath
+  \foreach \k in {1,...,15} {
+    \node[draw=navy, fill=lightblue!35, minimum width=0.75cm, minimum height=0.6cm, font=\scriptsize] (a\k) at ({0.75*\k-0.1},-1.5) {\k};
+  }
+  \node[font=\footnotesize\sffamily, anchor=east] at (0.15,-1.5) {tree[\,]};
+  \draw[-{Stealth}, navy!60] (n2.south west) to[bend right=15] (a2.north);
+  \draw[-{Stealth}, navy!60] (n4.south west) to[bend right=15] (a4.north);
+  \draw[-{Stealth}, navy!60] (n9.south) to[bend right=8] (a9.north);
+\end{tikzpicture}
+\caption{Heap-style numbering of the Segment Tree for $n=8$ (top) and the flat array that stores it (bottom). Node $k$ has children $2k$ and $2k+1$.}
+\label{fig:layout}
+\end{figure}
+
+\subsection{How Much Memory Is Enough?}
+When $n$ is not a power of two the tree is not perfect, and heap-style indices can reach values larger than $2n-1$. A safe bound comes from Lemma~\ref{lem:height}: the deepest node has index below $2^{h+1}$, where $h=\lceil\log_2 n\rceil$. Since $2^{h}<2n$, we get $2^{h+1}<4n$. This is why implementations conventionally allocate $4n$ cells, as in Table~\ref{tab:heights}.
+
+\begin{table}[h]
+\centering
+\caption{Height and memory for several array sizes.}
+\label{tab:heights}
+\begin{tabular}{rrrrr}
+\toprule
+\tblhead{$n$} & \tblhead{Height $\lceil\log_2 n\rceil$} & \tblhead{Nodes $2n-1$} & \tblhead{Safe bound $2^{h+1}$} & \tblhead{Rule of thumb $4n$} \\
+\midrule
+8              & 3  & 15              & 16              & 32 \\
+100            & 7  & 199             & 256             & 400 \\
+1{,}000        & 10 & 1{,}999         & 2{,}048         & 4{,}000 \\
+1{,}024        & 10 & 2{,}047         & 2{,}048         & 4{,}096 \\
+$10^6$         & 20 & 1{,}999{,}999   & 2{,}097{,}152   & 4{,}000{,}000 \\
+$10^9$         & 30 & 1{,}999{,}999{,}999 & 2{,}147{,}483{,}648 & 4{,}000{,}000{,}000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}
+The true number of nodes is always $2n-1$ (Lemma~\ref{lem:nodes}); the $4n$ allocation only pays for the unused gaps that appear in the heap-style numbering when $n$ is not a power of two.
+\end{remark}
+
+\section{Invariants}
+A correct Segment Tree maintains one invariant at all times, which every algorithm in the following chapters must preserve:
+
+\begin{equation}
+\text{for every node } v \text{ with interval } [l,r]:\qquad \operatorname{tree}[v] = \sum_{i=l}^{r}A[i].
+\label{eq:invariant}
+\end{equation}
+
+Construction establishes the invariant, queries only read it, and updates must repair it on exactly the nodes where it could have been broken.
+% ==================================================================
+%  PART 3 --- continues Chapter 3 (Section: Core Algorithms onward),
+%  then Chapter 4 (Complexity Analysis) and Chapter 5 (Worked Example)
+%  Paste this directly after the last line of part2_ch1-3.tex
+%  ("...must preserve on exactly the nodes where it could have been
+%  broken.") and before whatever chapter currently follows it.
+% ==================================================================
+
+\section{Core Algorithms}
+\label{sec:core-algorithms}
+Every operation on a Segment Tree is a recursive walk over the same implicit tree described in Section~\ref{sec:core-algorithms}: at each node the algorithm asks a cheap question about the current interval $[lo,hi]$ and either answers immediately, recurses into one child, or recurses into both. This section develops the three core routines --- build, update, and query --- one at a time, and Section~\ref{sec:query-example} traces each of them through the running $n=8$ example.
+
+\subsection{Build}
+\label{sec:build}
+Construction populates every node's stored summary, starting from the leaves and merging upward. Algorithm~\ref{alg:build} implements it as a single recursive pass.
+
+\begin{lstlisting}[style=cpp, caption={Recursive build.}, label={alg:build}]
+void build(int node, int lo, int hi) {
+    if (lo == hi) {
+        tree[node] = A[lo];
+        return;
+    }
+    int mid = (lo + hi) / 2;
+    build(2*node,   lo,     mid);
+    build(2*node+1, mid+1,  hi);
+    tree[node] = tree[2*node] + tree[2*node+1];   // merge
+}
+\end{lstlisting}
+
+\begin{keyidea}
+Build never inspects a query range at all --- it simply materializes the invariant of Equation~\eqref{eq:invariant} everywhere, once, so that later queries can trust every node's stored value without recomputation.
+\end{keyidea}
+
+Because each recursive call either reaches a leaf (processing one array element) or splits into exactly two children, the call tree of \texttt{build} is precisely the Segment Tree itself: one call per node, $2n-1$ calls in total by Lemma~\ref{lem:nodes}. Each call does $O(1)$ work beyond its two recursive calls, so:
+
+\begin{lem}[Build time]\label{lem:build-time}
+\texttt{build} runs in $\Oh{n}$ time and uses $\Oh{n}$ auxiliary space for the \texttt{tree} array.
+\end{lem}
+\begin{proof}
+The number of calls is $2n-1$ (Lemma~\ref{lem:nodes}), and each call performs $O(1)$ work outside of its recursive calls, so the total work is $\Oh{2n-1}=\Oh{n}$. The recursion depth is the tree height $\Oh{\log n}$ (Lemma~\ref{lem:height}), which bounds the auxiliary stack space, while the \texttt{tree} array itself occupies $\Oh{n}$ cells.
+\end{proof}
+
+\subsection{Point Update}
+\label{sec:update}
+A point update changes $A[pos]$ to a new value and must restore the invariant of Equation~\eqref{eq:invariant} at every node whose interval contains $pos$. Crucially, that set of nodes is not arbitrary: it is exactly the nodes on the root-to-leaf path for $pos$.
+
+\begin{lem}[Update touches one path]\label{lem:update-path}
+For a fixed index $pos$, the set of nodes whose interval contains $pos$ forms a single path from the root to the leaf $[pos,pos]$.
+\end{lem}
+\begin{proof}
+By Lemma~\ref{lem:partition}, the intervals at any one level are pairwise disjoint, so at most one node per level can contain $pos$. The root's interval $[1,n]$ always contains $pos$, and if a node at depth $d$ contains $pos$ then exactly one of its two children's intervals (by construction, a partition of the parent's interval) contains $pos$ as well, unless the node is already the leaf $[pos,pos]$. Hence there is exactly one such node at every depth from $0$ to $\lceil\log_2 n\rceil$, and consecutive ones are parent and child, i.e.\ a path.
+\end{proof}
+
+This lemma is the entire justification for the update algorithm: descend toward the leaf containing $pos$, ignoring the sibling subtree at every step, then recompute merges on the way back up.
+
+\begin{lstlisting}[style=cpp, caption={Point update.}, label={alg:update}]
+void update(int node, int lo, int hi, int pos, int val) {
+    if (lo == hi) {                 // pos == lo == hi
+        tree[node] = val;
+        return;
+    }
+    int mid = (lo + hi) / 2;
+    if (pos <= mid)
+        update(2*node,   lo,    mid, pos, val);
+    else
+        update(2*node+1, mid+1, hi,  pos, val);
+    tree[node] = tree[2*node] + tree[2*node+1];   // re-merge on the way back up
+}
+\end{lstlisting}
+
+\begin{pitfall}
+It is tempting to update only the leaf and stop. This leaves every ancestor's stored summary stale, silently corrupting every future query that touches $pos$. The re-merge line at the end of \texttt{update} is not optional bookkeeping --- it is what restores Equation~\eqref{eq:invariant}.
+\end{pitfall}
+
+\begin{lem}[Update time]\label{lem:update-time}
+\texttt{update} runs in $\Oh{\log n}$ time.
+\end{lem}
+\begin{proof}
+By Lemma~\ref{lem:update-path}, the recursion visits exactly one node per level, and the tree has $\lceil\log_2 n\rceil+1$ levels by Lemma~\ref{lem:height}. Each visited node performs $O(1)$ work (a comparison, a recursive call, and a merge), so the total work is $\Oh{\log n}$.
+\end{proof}
+
+\subsection{Range Query}
+\label{sec:query}
+A range query for $[ql,qr]$ should return $S(ql,qr) = \sum_{i=ql}^{qr} A[i]$ without touching every element. The algorithm compares the current node's interval $[lo,hi]$ against $[ql,qr]$ and falls into exactly one of three cases at each step.
+
+\begin{table}[h]
+\centering
+\caption{The three cases handled at each recursive step of a range query.}
+\label{tab:query-cases}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{4.6cm}p{5.0cm}}
+\toprule
+\tblhead{Case} & \tblhead{Condition} & \tblhead{Action} \\
+\midrule
+No overlap      & $qr < lo$ or $hi < ql$            & Return the identity; contributes nothing. \\
+Total overlap   & $ql \le lo$ and $hi \le qr$        & Return \texttt{tree[node]} directly; no need to look deeper. \\
+Partial overlap & otherwise                          & Recurse into both children and merge their results. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[style=cpp, caption={Range query.}, label={alg:query}]
+int query(int node, int lo, int hi, int ql, int qr) {
+    if (qr < lo || hi < ql)
+        return 0;                                  // no overlap (identity for sum)
+    if (ql <= lo && hi <= qr)
+        return tree[node];                          // total overlap
+    int mid = (lo + hi) / 2;
+    int left  = query(2*node,   lo,    mid, ql, qr);
+    int right = query(2*node+1, mid+1, hi,  ql, qr);
+    return left + right;                             // partial overlap
+}
+\end{lstlisting}
+
+\begin{keyidea}
+The identity element (here, $0$ for sum; $+\infty$ for minimum, $-\infty$ for maximum, $0$ for GCD) is what lets the no-overlap case return \emph{something} without a special-cased branch at the call site: merging with the identity never changes the result.
+\end{keyidea}
+
+Unlike \texttt{build} and \texttt{update}, a query does not visit a bounded number of nodes per level in general --- it can visit up to four per level, because a query range can cut into an interval from both sides. The next subsection makes this precise, since it is the crux of the $\Oh{\log n}$ query bound and easy to get wrong by assuming the recursion always halves the range.
+
+\subsection{Why Range Query Is \texorpdfstring{$O(\log n)$}{O(log n)}: the Overlap Argument}
+\label{sec:overlap-argument}
+Call a node \emph{fully covered} if it falls into the total-overlap case of Table~\ref{tab:query-cases}, and \emph{boundary} if it falls into the partial-overlap case (its interval straddles $ql$ or $qr$). No-overlap nodes are pruned immediately and never recurse further, so they contribute no cost beyond the $O(1)$ check that discards them.
+
+\begin{thm}[Query time]\label{thm:query-time}
+\texttt{query} performs $\Oh{\log n}$ merge operations and visits $\Oh{\log n}$ nodes in total.
+\end{thm}
+\begin{proof}
+At any fixed level $d$ of the tree, at most two nodes can be boundary nodes: one containing the left endpoint $ql$ and one containing the right endpoint $qr$ (there is at most one node per level containing any single index, by the disjointness half of Lemma~\ref{lem:partition}, and a node cannot straddle a query boundary unless it contains $ql$ or $qr$). A boundary node is exactly the kind of node that recurses into both children, so the number of boundary nodes at level $d+1$ descended from level $d$'s boundary nodes is at most $2\cdot 2 = 4$, but by the same argument only at most $2$ of those can again be boundary at level $d+1$ --- the rest are resolved as fully-covered or no-overlap immediately, which do not recurse further. Formally: define $B(d)$ as the number of boundary nodes at level $d$. Then $B(0)\le 1$ and $B(d)\le 2$ for all $d\ge 1$, because a boundary node has at most two children and at most one of a node's two children can itself be a boundary node on each side --- so the left boundary chain and the right boundary chain each advance by at most one boundary node per level. Since a fully-covered node returns immediately without recursing, the total number of nodes visited at any level is $\Oh{1}$, and the recursion depth is $\Oh{\log n}$ by Lemma~\ref{lem:height}. Summing $\Oh{1}$ work over $\Oh{\log n}$ levels gives $\Oh{\log n}$ total.
+\end{proof}
+
+\begin{remark}
+An equivalent, more concrete way to see Theorem~\ref{thm:query-time}: any interval $[ql,qr]$ decomposes into at most $2\lceil \log_2 n\rceil$ dyadic node-intervals, since the decomposition can be built by walking $ql$ and $qr$ upward simultaneously, each accumulating at most one fully-covered node per level. This is the same bound used informally in the Key Idea box of Section~\ref{ch:segtree}.
+\end{remark}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm and 6mm]
+\node[cutnode] (root) {$[1,8]$};
+\node[pathnode, below left=of root] (l) {$[1,4]$};
+\node[hitnode, below right=of root] (r) {$[5,8]$};
+\node[hitleaf, below left=of l] (a) {$[1,2]$};
+\node[pathleaf, below right=of l] (b) {$[3,4]$};
+\node[cutleaf, below left=of r] (c) {$[5,6]$};
+\node[cutleaf, below right=of r] (d) {$[7,8]$};
+\draw[segedge] (root)--(l) (root)--(r) (l)--(a) (l)--(b) (r)--(c) (r)--(d);
+\end{tikzpicture}
+\caption{Query $[1,4]$ against the array of Figure~\ref{fig:layout}. Green nodes are fully covered and returned directly; gold nodes are boundary nodes that recurse further; grey dashed nodes are pruned by the no-overlap case and never visited beyond the check itself. Only $[1,2]$ and $[3,4]$ are actually summed.}
+\label{fig:query-example}
+\end{figure}
+
+% ==================================================================
+\chapter{Complexity Analysis}
+\label{ch:complexity}
+
+\section{Summary of Results}
+Chapter~\ref{ch:segtree} established the three core algorithms and proved a time bound for each individually. This short chapter collects those results, states the corresponding space bound, and discusses the constants that Table~\ref{tab:heights} already hinted at.
+
+\begin{table}[h]
+\centering
+\caption{Time and space complexity of the core Segment Tree operations, as proved in Chapter~\ref{ch:segtree}.}
+\label{tab:complexity-ch4}
+\begin{tabular}{llp{6.3cm}}
+\toprule
+\tblhead{Operation} & \tblhead{Time} & \tblhead{Source} \\
+\midrule
+Build          & $\Oh{n}$        & Lemma~\ref{lem:build-time} \\
+Point update   & $\Oh{\log n}$   & Lemma~\ref{lem:update-time} \\
+Range query    & $\Oh{\log n}$   & Theorem~\ref{thm:query-time} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Space Complexity}
+The \texttt{tree} array is indexed with the heap-style scheme of Equation~\eqref{eq:heap}, so its size must accommodate the largest index any node can receive rather than merely the true node count of $2n-1$ (Lemma~\ref{lem:nodes}).
+
+\begin{lem}[Space bound]\label{lem:space}
+Allocating $\Oh{n}$ cells --- specifically $4n$, per Table~\ref{tab:heights} --- suffices for the \texttt{tree} array regardless of whether $n$ is a power of two.
+\end{lem}
+\begin{proof}
+By Lemma~\ref{lem:height} the tree has height $h=\lceil\log_2 n\rceil$, so every node index under the numbering of Equation~\eqref{eq:heap} is strictly below $2^{h+1}$. Since $2^{h}<2n$ (because $h=\lceil\log_2 n\rceil$ implies $2^{h-1}<n\le 2^h$), it follows that $2^{h+1}<4n$, so $4n$ cells is a safe --- if slightly generous --- upper bound.
+\end{proof}
+
+\section{Why the Bounds Do Not Depend on the Query Pattern}
+A recurring point of confusion is whether an adversarial sequence of queries and updates could push the cost above $\Oh{\log n}$ per operation. It cannot: Lemma~\ref{lem:update-path} shows the update path is determined purely by $pos$, and Theorem~\ref{thm:query-time}'s boundary-node argument bounds the number of visited nodes purely by the tree's height, independent of which values are stored or which merge results are equal to one another. The bounds are therefore \emph{worst-case per operation}, not amortized, which is one of the practical advantages of a Segment Tree over structures that only offer amortized guarantees.
+
+\begin{remark}
+This worst-case, per-operation guarantee is also why Segment Trees are preferred in settings with hard latency requirements, such as the financial-instrument scenario of Section~\ref{sec:motivation}: an amortized bound could in principle let a single unlucky query take $\Oh{n}$ time, which a Segment Tree never does.
+\end{remark}
+
+% ==================================================================
+\chapter{Worked Example}
+\label{ch:worked-example}
+
+This chapter traces build, several updates, and several queries through one concrete array, so that the abstract algorithms of Chapter~\ref{ch:segtree} can be checked step by step against explicit numbers.
+
+\section{Setup}
+\label{sec:query-example}
+Let $n=8$ and
+\[
+A = [\,3,\ 1,\ 4,\ 1,\ 5,\ 9,\ 2,\ 6\,],
+\]
+the same array underlying Figure~\ref{fig:layout} and Figure~\ref{fig:layout}, indexed $A[1],\dots,A[8]$.
+
+\subsection{Build Trace}
+Table~\ref{tab:build-trace} lists the stored sum at every node after \texttt{build(1,1,8)} completes, using the heap-style indices of Equation~\eqref{eq:heap}.
+
+\begin{table}[h]
+\centering
+\caption{Node contents after \texttt{build} on $A=[3,1,4,1,5,9,2,6]$.}
+\label{tab:build-trace}
+\begin{tabular}{cccc}
+\toprule
+\tblhead{Node} & \tblhead{Interval} & \tblhead{Sum} & \tblhead{Level} \\
+\midrule
+1  & $[1,8]$ & 31 & 0 \\
+2  & $[1,4]$ & 9  & 1 \\
+3  & $[5,8]$ & 22 & 1 \\
+4  & $[1,2]$ & 4  & 2 \\
+5  & $[3,4]$ & 5  & 2 \\
+6  & $[5,6]$ & 14 & 2 \\
+7  & $[7,8]$ & 8  & 2 \\
+8  & $[1,1]$ & 3  & 3 \\
+9  & $[2,2]$ & 1  & 3 \\
+10 & $[3,3]$ & 4  & 3 \\
+11 & $[4,4]$ & 1  & 3 \\
+12 & $[5,5]$ & 5  & 3 \\
+13 & $[6,6]$ & 9  & 3 \\
+14 & $[7,7]$ & 2  & 3 \\
+15 & $[8,8]$ & 6  & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each leaf (nodes 8--15) is filled directly from $A$; each internal node is then the sum of its two children, matching Equation~\eqref{eq:merge}. The root value $31$ is the total of all eight elements, as expected.
+
+\section{A Range Query}
+Consider $\Qry(3,7)$. Table~\ref{tab:query-trace} follows the recursion of Algorithm~\ref{alg:query} call by call.
+
+\begin{table}[h]
+\centering
+\caption{Recursion trace of \texttt{query(1,1,8,3,7)}.}
+\label{tab:query-trace}
+\begin{tabular}{cccp{5.0cm}}
+\toprule
+\tblhead{Node} & \tblhead{Interval} & \tblhead{Case} & \tblhead{Action} \\
+\midrule
+1 & $[1,8]$ & Partial & Recurse into nodes 2 and 3. \\
+2 & $[1,4]$ & Partial & Recurse into nodes 4 and 5. \\
+3 & $[5,8]$ & Partial & Recurse into nodes 6 and 7. \\
+4 & $[1,2]$ & No overlap ($hi=2<ql=3$) & Return $0$. \\
+5 & $[3,4]$ & Total overlap & Return $\text{tree}[5]=5$. \\
+6 & $[5,6]$ & Total overlap & Return $\text{tree}[6]=14$. \\
+7 & $[7,8]$ & Partial & Recurse into nodes 14 and 15. \\
+14 & $[7,7]$ & Total overlap & Return $\text{tree}[14]=2$. \\
+15 & $[8,8]$ & No overlap ($lo=8>qr=7$) & Return $0$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Combining the returned values bottom-up: node 7 returns $2+0=2$; node 3 returns $14+2=16$; node 2 returns $0+5=5$; node 1 returns $5+16=21$. Indeed $A[3]+A[4]+A[5]+A[6]+A[7]=4+1+5+9+2=21$, confirming the trace. Only $9$ of the $15$ nodes were visited, and only two nodes ($5$ and $6$) contributed a value directly without further recursion --- exactly the fully-covered decomposition described in the remark after Theorem~\ref{thm:query-time}.
+
+\section{A Point Update}
+Now apply $\Upd(6,7)$, changing $A[6]$ from $9$ to $7$. By Lemma~\ref{lem:update-path} this touches exactly the path from the root to leaf $[6,6]$, i.e.\ nodes $1\to 3\to 6\to 13$.
+
+\begin{table}[h]
+\centering
+\caption{Recursion trace of \texttt{update(1,1,8,6,7)}; only the path to leaf 13 is touched.}
+\label{tab:update-trace}
+\begin{tabular}{ccp{8.4cm}}
+\toprule
+\tblhead{Node} & \tblhead{Interval} & \tblhead{Effect} \\
+\midrule
+13 & $[6,6]$ & Base case; $\text{tree}[13]\gets 7$. \\
+6  & $[5,6]$ & Re-merge: $\text{tree}[6]\gets \text{tree}[12]+\text{tree}[13]=5+7=12$. \\
+3  & $[5,8]$ & Re-merge: $\text{tree}[3]\gets \text{tree}[6]+\text{tree}[7]=12+8=20$. \\
+1  & $[1,8]$ & Re-merge: $\text{tree}[1]\gets \text{tree}[2]+\text{tree}[3]=9+20=29$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Nodes $2,4,5,7$ and every leaf other than $13$ are untouched, since none of their intervals contain index $6$ --- exactly as Lemma~\ref{lem:update-path} predicts. Re-running $\Qry(3,7)$ after this update would now correctly return $4+1+5+7+2=19$, reflecting the updated value without any node outside the single path having been revisited.
+
+\begin{remark}
+Table~\ref{tab:update-trace} and Table~\ref{tab:query-trace} together illustrate the asymmetry between the two operations: an update always touches a fixed-size path of $\Oh{\log n}$ nodes regardless of which index changed, while a query's cost depends on how the range $[ql,qr]$ happens to align with the dyadic intervals of the tree --- though it is $\Oh{\log n}$ in every case, by Theorem~\ref{thm:query-time}.
+\end{remark}
+
+% ==================================================================
+%  PART 4 --- Chapter 6 (Correctness), Chapter 7 (Implementation
+%  Design and Practical Issues), Chapter 8 (Lazy Propagation),
+%  Chapter 9 (Generalization), Chapter 10 (Applications)
+%  Paste this directly after the last line of part3 (the remark
+%  closing the Worked Example chapter) and before whatever chapter
+%  currently follows it.
+% ==================================================================
+
+\chapter{Correctness}
+\label{ch:correctness}
+
+Chapter~\ref{ch:complexity} established \emph{how fast} the three core algorithms run; this short chapter states \emph{why they are right}, tying each argument back to the invariant of Equation~\eqref{eq:invariant} and the lemmas already proved in Chapter~\ref{ch:segtree}.
+
+\section{The Invariant, Restated}
+Every correctness argument in this report reduces to one statement, repeated here for convenience:
+\begin{equation}
+\text{for every node } v \text{ with interval } [l,r]:\qquad \operatorname{tree}[v] = S(l,r) = \sum_{i=l}^{r}A[i].
+\tag{\ref{eq:invariant} revisited}
+\end{equation}
+\texttt{build} establishes it, \texttt{query} only reads it, and \texttt{update} must restore it after exactly one leaf changes.
+
+\begin{table}[H]
+\centering
+\caption{Correctness postcondition of each core operation.}
+\label{tab:invariants}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm}p{9.4cm}}
+\toprule
+\tblhead{Operation} & \tblhead{Postcondition} \\
+\midrule
+Build        & Every node satisfies Equation~\eqref{eq:invariant} for its own interval. \\
+Point update & Every node on the root-to-leaf path for $pos$ is recomputed from already-correct children; every other node is untouched and remains correct because its interval does not contain $pos$. \\
+Range query  & The set of nodes returned directly (the fully-covered case) is pairwise disjoint and its union is exactly $[ql,qr]$; merging them therefore gives $S(ql,qr)$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Correctness of Build}
+\begin{thm}[Build correctness]\label{thm:build-correct}
+After \texttt{build(1,1,n)} completes, Equation~\eqref{eq:invariant} holds at every node.
+\end{thm}
+\begin{proof}
+By induction on subtree height. A leaf $[lo,lo]$ is assigned $\text{tree}[node]=A[lo]=S(lo,lo)$ directly, the base case. For an internal node $[lo,hi]$ with $mid=\lfloor(lo+hi)/2\rfloor$, the two recursive calls establish the invariant at the children $[lo,mid]$ and $[mid+1,hi]$ by the inductive hypothesis, and the subsequent merge sets $\text{tree}[node]=\text{tree}[2\cdot node]+\text{tree}[2\cdot node+1]=S(lo,mid)+S(mid+1,hi)=S(lo,hi)$ by Equation~\eqref{eq:merge}.
+\end{proof}
+
+\section{Correctness of Update}
+\begin{thm}[Update correctness]\label{thm:update-correct}
+If Equation~\eqref{eq:invariant} holds before \texttt{update(1,1,n,pos,val)} and $A[pos]$ is conceptually set to \texttt{val}, then Equation~\eqref{eq:invariant} again holds at every node after the call returns.
+\end{thm}
+\begin{proof}
+By Lemma~\ref{lem:update-path}, the nodes containing $pos$ form exactly the root-to-leaf path visited by the recursion, and only these nodes have their interval's sum affected by the change to $A[pos]$; every node off this path has an interval that excludes $pos$, so its correct value $S(l,r)$ is unaffected by the change and, since the algorithm never modifies it, it remains correct. Along the path, the leaf is set directly to \texttt{val} $=S(pos,pos)$, and each ancestor is recomputed as the merge of its two children on the way back up the recursion; since both children are correct at the moment of merging (the deeper one by having just been fixed, the shallower sibling by not having changed), Equation~\eqref{eq:merge} guarantees the parent becomes correct as well. Induction up the path completes the argument.
+\end{proof}
+
+\section{Correctness of Range Query}
+\begin{thm}[Query correctness]\label{thm:query-correct}
+Assuming Equation~\eqref{eq:invariant} holds throughout, \texttt{query(1,1,n,ql,qr)} returns $S(ql,qr)$.
+\end{thm}
+\begin{proof}
+Every value returned by the recursion is one of: the identity (no-overlap case), a stored $\text{tree}[node]=S(lo,hi)$ for a node fully contained in $[ql,qr]$ (total-overlap case), or a merge of two such recursively-correct values (partial-overlap case). The no-overlap contributions vanish under the merge since the identity leaves a merge unchanged. What remains is a sum of $S(l_i,r_i)$ over the fully-covered nodes reached by the recursion. These intervals are pairwise disjoint by Lemma~\ref{lem:partition} restricted to the nodes actually visited, and their union is exactly $[ql,qr]$: every index in $[ql,qr]$ eventually lands inside some node that becomes fully covered, because the recursion only stops descending once a node's interval is entirely inside $[ql,qr]$ or entirely outside it, and it always reaches a leaf if neither holds. By additivity of $S$ over a partition of $[ql,qr]$, the sum of the disjoint pieces equals $S(ql,qr)$.
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:query-correct}'s disjoint-cover argument is exactly what Figure~\ref{fig:query-example} illustrates concretely: the two green nodes $[1,2]$ and $[3,4]$ are disjoint and their union is $[1,4]$, the requested range.
+\end{remark}
+
+% ==================================================================
+\chapter{Implementation Design and Practical Issues}
+\label{ch:implementation}
+
+The preceding chapters fix the algorithmic content of a Segment Tree; this chapter addresses the engineering decisions that turn that content into working code.
+
+\section{Array-Based Representation, Revisited}
+Section~\ref{sec:build} already introduced the heap-style array layout of Equation~\eqref{eq:heap} and its $4n$ allocation rule (Lemma~\ref{lem:space}). This remains the default choice: it avoids pointer objects entirely, keeps sibling and parent access to simple arithmetic, and gives predictable, cache-friendly memory access compared to a pointer-based tree.
+
+\section{Indexing Conventions}
+\label{sec:indexing}
+This report's mathematical exposition uses one-indexed intervals such as $[1,n]$ throughout, matching the code listings. Most production languages use zero-based arrays, in which case the interval becomes $[0,n-1]$ and every occurrence of $mid=\lfloor(lo+hi)/2\rfloor$, the leaf test $lo=hi$, and the child ranges $[lo,mid]$/$[mid+1,hi]$ carry over unchanged in form --- only the array's own bounds shift. Mixing the two conventions within a single implementation, rather than choosing one and committing to it, is the most common source of off-by-one bugs in Segment Tree code.
+
+\begin{pitfall}
+A particularly common variant of this bug is querying with an inclusive-exclusive range $[ql,qr)$ against a tree built with inclusive-inclusive intervals $[lo,hi]$. The no-overlap and total-overlap conditions in Table~\ref{tab:query-cases} are only correct for two intervals using the \emph{same} convention.
+\end{pitfall}
+
+\section{Recursive Versus Iterative Implementations}
+The recursive form used throughout Algorithms~\ref{alg:build}--\ref{alg:query} mirrors the mathematical definitions directly and is the easiest to verify against the proofs of Chapter~\ref{ch:correctness}. An iterative, bottom-up formulation over the same heap-style array avoids function-call overhead and is common in performance-sensitive competitive-programming code, at the cost of being noticeably harder to adapt once lazy propagation (Chapter~\ref{ch:lazy}) is introduced. Both forms implement the identical interval decomposition; the choice is an engineering trade-off, not a difference in asymptotic behavior.
+
+\section{Numeric Type and Overflow}
+For a sum Segment Tree, the stored aggregate at the root can be up to $n$ times larger than any individual element. A 32-bit integer type that comfortably holds each $A[i]$ can silently overflow when summing $n$ of them; 64-bit integers are the conventional safe default for sum aggregates over anything but the smallest inputs. This concern does not apply in the same way to $\min$, $\max$, or GCD trees (Chapter~\ref{ch:general}), whose stored values never exceed the range of the input elements themselves.
+
+\begin{table}[H]
+\centering
+\caption{Implementation decisions and the reasoning behind the conventional default.}
+\label{tab:implementation}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.0cm}p{6.0cm}}
+\toprule
+\tblhead{Concern} & \tblhead{Typical choice} & \tblhead{Reason} \\
+\midrule
+Node storage & Flat array & Low overhead, predictable memory access (Section~\ref{ch:implementation}). \\
+Tree allocation & $4n$ cells & Safe bound under heap-style indexing (Lemma~\ref{lem:space}). \\
+Numeric type (sum) & 64-bit integer & Root aggregate can be $n\times$ larger than any element. \\
+Indexing & One consistent convention & Prevents boundary/midpoint mismatches (Section~\ref{sec:indexing}). \\
+Recursion depth & $\Oh{\log n}$ & Safe for essentially all practical $n$ (Lemma~\ref{lem:height}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Lazy Propagation}
+\label{ch:lazy}
+
+\section{The Problem with Naive Range Updates}
+Every algorithm so far modifies a single array position per update. A \emph{range update} --- for example, ``add $5$ to every element in $[3,7]$'' --- has no efficient naive implementation on a Segment Tree: applying Algorithm~\ref{alg:update} once per index in the range costs $\Oh{r-l+1}$ point updates, each $\Oh{\log n}$, for a total of $\Oh{(r-l+1)\log n}$, which degrades to $\Oh{n\log n}$ for a full-array update. This defeats the purpose of the data structure.
+
+\begin{keyidea}
+Lazy propagation defers work: instead of eagerly pushing a range update down to every affected leaf, a node records a pending change and applies it to its \emph{own} stored aggregate immediately, but only pushes the pending change further down to its children the next time that subtree is actually visited\cite{cpalgorithms}.
+\end{keyidea}
+
+\section{Lazy Tags}
+Each node gains a second array, conventionally called \texttt{lazy}, storing a pending increment not yet applied to the node's children. A node's own \texttt{tree} value is always kept up to date --- it already reflects its own pending tag --- but its children's \texttt{tree} values may be stale until the tag is \emph{pushed down}.
+
+\begin{lstlisting}[style=cpp, caption={Pushing a pending tag down to both children before recursing into either one.}, label={alg:pushdown}]
+void pushDown(int node, int lo, int hi) {
+    if (lazy[node] == 0) return;
+    int mid = (lo + hi) / 2;
+    int lLen = mid - lo + 1, rLen = hi - mid;
+
+    tree[2*node]     += lazy[node] * lLen;
+    lazy[2*node]      += lazy[node];
+    tree[2*node+1]   += lazy[node] * rLen;
+    lazy[2*node+1]    += lazy[node];
+
+    lazy[node] = 0;                       // fully delegated
+}
+\end{lstlisting}
+
+\section{Range Update}
+A range update applies the same three-way case split as \texttt{query} (Table~\ref{tab:query-cases}): a node fully inside the update range absorbs the change directly and tags its children lazily instead of recursing; a node with no overlap is pruned; a partially overlapping node must first push down any tag of its own, then recurse into both children, then re-merge.
+
+\begin{lstlisting}[style=cpp, caption={Range update with lazy propagation (add val to every element in the update interval).}, label={alg:rangeupdate}]
+void rangeUpdate(int node, int lo, int hi, int ul, int ur, int val) {
+    if (ur < lo || hi < ul) return;                       // no overlap
+    if (ul <= lo && hi <= ur) {                            // total overlap
+        tree[node] += val * (hi - lo + 1);
+        lazy[node] += val;
+        return;
+    }
+    pushDown(node, lo, hi);                                 // partial overlap
+    int mid = (lo + hi) / 2;
+    rangeUpdate(2*node,   lo,    mid, ul, ur, val);
+    rangeUpdate(2*node+1, mid+1, hi,  ul, ur, val);
+    tree[node] = tree[2*node] + tree[2*node+1];
+}
+\end{lstlisting}
+
+\section{Range Query Under Lazy Propagation}
+The query algorithm (Algorithm~\ref{alg:query}) needs exactly one addition: a call to \texttt{pushDown} before recursing into a partially overlapping node, so that stale children are corrected before their values are read.
+
+\begin{lstlisting}[style=cpp, caption={Range query, adapted for a tree with lazy tags.}, label={alg:lazyquery}]
+int query(int node, int lo, int hi, int ql, int qr) {
+    if (qr < lo || hi < ql) return 0;
+    if (ql <= lo && hi <= qr) return tree[node];
+    pushDown(node, lo, hi);                    // only new line vs. Algorithm 3
+    int mid = (lo + hi) / 2;
+    int left  = query(2*node,   lo,    mid, ql, qr);
+    int right = query(2*node+1, mid+1, hi,  ql, qr);
+    return left + right;
+}
+\end{lstlisting}
+
+\begin{lem}[Lazy operation time]\label{lem:lazy-time}
+With lazy propagation, both \texttt{rangeUpdate} and \texttt{query} run in $\Oh{\log n}$ time.
+\end{lem}
+\begin{proof}
+The recursion structure of \texttt{rangeUpdate} is identical to that of Algorithm~\ref{alg:query} (Table~\ref{tab:query-cases} governs both), so the same overlap argument used in Theorem~\ref{thm:query-time} bounds the number of visited nodes by $\Oh{\log n}$. Each visited node now also performs a \texttt{pushDown}, which is $\Oh{1}$ work, so the total remains $\Oh{\log n}$. The query analysis is unchanged from Theorem~\ref{thm:query-time} except for the same $\Oh{1}$-per-node \texttt{pushDown} addition.
+\end{proof}
+
+\begin{pitfall}
+Omitting the \texttt{pushDown} call inside \texttt{query} (or inside \texttt{rangeUpdate}'s partial-overlap branch) is the single most common bug in lazy Segment Tree implementations: the parent's \texttt{tree} value is correct, but a child read directly --- without first being corrected --- may still reflect a stale value from before a pending tag was applied.
+\end{pitfall}
+
+% ==================================================================
+\chapter{Generalization of Segment Trees}
+\label{ch:general}
+
+\section{Associative Merge Operations}
+One of the most useful properties of the Segment Tree is that its \emph{shape} --- the recursive interval decomposition proved correct in Chapter~\ref{ch:correctness} --- never changes when the underlying problem changes; only the stored summary and the merge rule $f$ need to be redefined. For the recursive query implementation used in this report, the merge operation $f$ must be associative and have an identity element $e$ so that the no-overlap case can return a neutral value. The associativity requirement is
+\begin{equation}
+f(f(a,b),c) = f(a,f(b,c)) \quad \text{for all } a,b,c.
+\label{eq:assoc}
+\end{equation}
+Associativity is what allows the summaries of disjoint child intervals to be merged without depending on the order in which the interval decomposition is formed. The identity element $e$, with $f(x,e)=x$, is additionally needed by the particular query routine used here to handle the no-overlap case of Table~\ref{tab:query-cases}.
+
+\begin{table}[h]
+\centering
+\caption{The same Segment Tree structure, generalized to other associative merge operations.}
+\label{tab:generalization}
+\begin{tabular}{llll}
+\toprule
+\tblhead{Problem} & \tblhead{Node stores} & \tblhead{Merge rule} & \tblhead{Identity} \\
+\midrule
+Range sum      & Sum      & $a+b$         & $0$ \\
+Range minimum  & Minimum  & $\min(a,b)$   & $+\infty$ \\
+Range maximum  & Maximum  & $\max(a,b)$   & $-\infty$ \\
+Range GCD      & GCD      & $\gcd(a,b)$   & $0$ \\
+\rowcolor{lightblue!30}
+Any associative rule & Any summary & swap in the rule & swap in the identity \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Range Minimum, Maximum, and GCD}
+For each row of Table~\ref{tab:generalization}, Algorithms~\ref{alg:build}--\ref{alg:query} are \emph{structurally unchanged} --- only the merge line (the single addition in each listing) is replaced, e.g.\ \texttt{tree[node] = min(tree[2*node], tree[2*node+1])} for range minimum. Because Theorem~\ref{thm:build-correct} through Theorem~\ref{thm:query-correct} and the complexity bounds of Chapter~\ref{ch:complexity} used nothing about $+$ beyond associativity and the identity property, all of them --- $\Oh{n}$ build, $\Oh{\log n}$ update, $\Oh{\log n}$ query --- carry over unchanged to every row of the table, and to any other associative operation not listed.
+
+\begin{remark}
+Range minimum and maximum are not, in general, invertible the way sum is: there is no operation $g$ with $g(\min(a,b),a)=b$ analogous to subtraction undoing addition. This is why a \emph{point} update (Algorithm~\ref{alg:update}) works unchanged for $\min$/$\max$ trees --- it recomputes ancestors from children rather than trying to ``undo'' a stale value --- while certain range-update tricks that exploit invertibility for sum trees do not transfer to $\min$/$\max$ without modification.
+\end{remark}
+
+\section{Composite Node Summaries}
+A node need not store a single scalar. It may store a small structure of several jointly-merged statistics, provided the combined structure itself satisfies Equation~\eqref{eq:assoc}. A classic example is the \emph{maximum-subarray-sum} query: each node stores its interval's total sum, best prefix sum, best suffix sum, and best subarray sum, and the merge rule combines two children's four-tuples into a parent four-tuple in $\Oh{1}$ time. This turns the Segment Tree from a range-aggregate container into a general framework for a much larger class of interval algorithms.
+
+\section{When Not to Use a Segment Tree}
+A Segment Tree is not automatically the best choice for every range problem, and the design checklist below is meant to be worked through before committing to one.
+
+\begin{table}[H]
+\centering
+\caption{Design checklist for selecting and implementing a Segment Tree.}
+\label{tab:checklist}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.2cm}p{8.0cm}}
+\toprule
+\tblhead{Question} & \tblhead{Design implication} \\
+\midrule
+What is queried? & Defines the node summary and merge operation $f$. \\
+What is updated? & Point updates only, or ranges? The latter needs lazy propagation (Chapter~\ref{ch:lazy}). \\
+Is the merge associative? & Required for Table~\ref{tab:query-cases}'s decomposition to be well defined at all. \\
+Is an identity required? & Needed so the no-overlap case (Table~\ref{tab:query-cases}) has something neutral to return. \\
+Are there any updates at all? & If not, a plain prefix-sum array answers range sums in $\Oh{1}$ with no tree. \\
+Is the operation just addition with point updates? & A Fenwick Tree (Chapter~\ref{ch:comparison}) gives the same $\Oh{\log n}$ bounds with less memory and a simpler implementation. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Applications}
+\label{ch:applications}
+
+Table~\ref{tab:applications} surveys representative domains where the Segment Tree's core pattern --- \emph{summarize a range, then change part of it, repeatedly and at scale} --- arises naturally, extending the financial-instrument scenario first introduced in Section~\ref{sec:motivation}.
+
+\begin{table}[h]
+\centering
+\caption{Representative applications of the Segment Tree.}
+\label{tab:applications}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{4.2cm}p{5.3cm}}
+\toprule
+\tblhead{Application} & \tblhead{Dynamic data} & \tblhead{Possible query} \\
+\midrule
+Financial time series & Prices over time & Sum/min/max over a time interval \\
+Leaderboards & Player scores & Range statistics; augmented for rank/$k$-th order \\
+Scheduling \& booking & Time-slot availability & Aggregate availability; augmented for longest run \\
+Analytics dashboards & Continuously changing measurements & Range minimum/maximum/sum \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Time-Series Data}
+In a system tracking financial instrument prices --- the running motivating example of Section~\ref{sec:motivation} --- a plain sum Segment Tree already supports instant range-sum, range-min, or range-max queries over any contiguous time window, even as thousands of price updates arrive per second, at the worst-case $\Oh{\log n}$ per operation guaranteed by Theorem~\ref{thm:query-time} and Lemma~\ref{lem:update-time}.
+
+\section{Leaderboards}
+The plain sum tree described up to this point does not, by itself, answer rank or $k$-th-largest queries. However, per the generalization principle of Chapter~\ref{ch:general}, the same tree shape can be \emph{augmented} to store score-frequency counts at each node rather than a running sum, which allows rank queries and $k$-th-order-statistic lookups to be answered in $\Oh{\log n}$, with score updates handled just as fast.
+
+\section{Scheduling and Booking}
+Similarly, locating or reserving a free contiguous range of seats or time slots requires an augmented Segment Tree in which each node stores additional composite information --- such as the count of free slots together with the longest prefix, suffix, and interior run of free slots within its interval, in the spirit of Section~9.3's maximum-subarray example --- so that availability queries and reservations can still be resolved in $\Oh{\log n}$.
+
+\section{Other Dynamic Range Problems}
+More generally, any system that must repeatedly answer ``what is true across this range?'' while ``something inside the range keeps changing'' is a candidate for a Segment Tree, regardless of the specific domain, provided a suitable associative merge (Section~9.1) can be found for whatever ``true across this range'' means for that problem.
+
+
+
+% ==================================================================
+%  PART 5 --- Chapter 11 (Segment Tree vs. Other Data Structures),
+%  Chapter 12 (Complexity and Practical Considerations),
+%  Chapter 13 (Conclusion), Appendices (Reference Pseudocode,
+%  Summary of Complexity), and Bibliography.
+%  Paste this directly after the last line of part4 (the closing
+%  paragraph of the Applications chapter) and before \end{document}.
+% ==================================================================
+
+\chapter{Segment Tree vs.\ Other Data Structures}
+\label{ch:comparison}
+
+The preceding chapters developed the Segment Tree in isolation. This chapter places it alongside the other standard tools for range queries, so that choosing among them becomes a matter of matching a structure's guarantees to a problem's requirements rather than defaulting to the most recently learned technique.
+
+\section{Na\"ive Array}
+A plain array supports a point update in $\Oh{1}$ by simply overwriting $A[i]$, but a range query has no shortcut: every one of the $r-l+1$ elements in $[l,r]$ must be read, giving $\Oh{n}$ in the worst case. This provides the baseline against which the logarithmic Segment Tree bounds can be compared.
+
+\section{Prefix Sum}
+\label{sec:prefixsum}
+Precomputing $P[i]=\sum_{k=1}^{i}A[k]$ once, in $\Oh{n}$, answers any range-sum query as $P[r]-P[l-1]$ in $\Oh{1}$ --- unbeatable when the array never changes. The weakness is symmetric to the na\"ive array's: a single point update at position $i$ invalidates $P[i],P[i+1],\ldots,P[n]$, forcing an $\Oh{n}$ rebuild of the suffix of the prefix array. Table~\ref{tab:tradeoff} already used this trade-off to motivate the Segment Tree in Chapter~\ref{ch:problem}; it is restated here as the first row of Table~\ref{tab:comparison-full} for completeness.
+
+\begin{pitfall}
+Prefix sums do not provide the same direct $O(1)$ range-query formula for arbitrary range minimum or maximum queries. In particular, two prefix minima cannot generally be combined by subtraction or another inverse operation to recover $\min(A[l],\ldots,A[r])$. Thus prefix sums are especially useful for static range-sum and other settings where an appropriate inverse operation exists.
+\end{pitfall}
+
+\section{Square-Root Decomposition}
+\label{sec:sqrtdecomp}
+Square-root decomposition splits $A[1\ldots n]$ into $\approx\sqrt{n}$ contiguous blocks of size $\approx\sqrt{n}$ each, storing one aggregate per block. A point update recomputes only the one block containing the changed index, in $\Oh{\sqrt n}$. A range query $[l,r]$ reads whole blocks fully contained in $[l,r]$ directly from their precomputed aggregates, and falls back to scanning the at most two partial blocks at the ends element by element, for a total of $\Oh{\sqrt n}$.
+
+\begin{keyidea}
+Square-root decomposition is best understood as sitting exactly between the two extremes of Sections~\ref{sec:prefixsum}--above: it balances update and query cost instead of making one of them $\Oh{1}$ at the other's expense, in the same spirit as the Segment Tree, but with a shallower two-level hierarchy (blocks of elements) instead of a full $\Oh{\log n}$-deep binary decomposition.
+\end{keyidea}
+
+Because both of its operations are $\Oh{\sqrt n}$ rather than $\Oh{\log n}$, square-root decomposition is asymptotically slower than a Segment Tree for large $n$, but its block structure is simple to implement and adapts readily to more exotic per-block bookkeeping (for example, a per-block ``lazy'' add, mirroring Chapter~\ref{ch:lazy} at a coarser granularity), which is why it remains popular as a quick, low-risk substitute when a Segment Tree's implementation cost is not justified.
+
+\section{Sparse Table}
+\label{sec:sparsetable}
+A sparse table precomputes, for every position $i$ and every power of two $2^{k}\le n$, the aggregate of the block $[i,i+2^{k}-1]$, using $\Oh{n\log n}$ time and space overall\cite{cpalgorithms-sparse}. For an \emph{idempotent} merge operation --- one satisfying $f(a,a)=a$, such as $\min$, $\max$, or bitwise $\mathrm{AND}$/$\mathrm{OR}$ --- any range query $[l,r]$ can then be answered in $\Oh{1}$ by covering it with two (possibly overlapping) precomputed blocks of size $2^{\lfloor\log_2(r-l+1)\rfloor}$ and merging them, since overlap causes no double-counting under idempotence.
+
+\begin{pitfall}
+The sparse table's $\Oh{1}$ query is available \emph{only} for idempotent operations and \emph{only} on a static array: unlike the overlap in $\min$/$\max$ queries, overlap under sum double-counts the shared region, so a sparse table cannot answer range-sum queries this way; and because every precomputed block would need to be recomputed, it does not support updates at all in its basic form. It is best reserved for static range-minimum/maximum queries (for instance, as a building block for the Lowest Common Ancestor problem), not as a general-purpose competitor to the Segment Tree.
+\end{pitfall}
+
+\section{Fenwick Tree}
+\label{sec:fenwick}
+A Fenwick Tree (Binary Indexed Tree) supports both point update and range-sum query in $\Oh{\log n}$, matching the Segment Tree's asymptotic bounds for this specific combination, but with a smaller memory footprint\cite{fenwick,cpalgorithms-fenwick} (an array of size $n{+}1$, versus the $4n$ bound of Lemma~\ref{lem:space}) and a markedly simpler implementation: each of its two core operations is a short loop that repeatedly adds or subtracts the lowest set bit of an index, with no explicit tree, recursion, or merge function to write.
+
+\begin{table}[H]
+\centering
+\caption{Point update and range-sum query implemented on a Fenwick Tree; \texttt{tree} is 1-indexed and initialized to all zeros.}
+\label{lst:fenwick-ref}
+\begin{lstlisting}[style=cpp]
+void update(int i, int delta) {
+    for (; i <= n; i += i & (-i))
+        tree[i] += delta;
+}
+
+int prefixSum(int i) {
+    int s = 0;
+    for (; i > 0; i -= i & (-i))
+        s += tree[i];
+    return s;
+}
+
+int rangeSum(int l, int r) {
+    return prefixSum(r) - prefixSum(l - 1);
+}
+\end{lstlisting}
+\end{table}
+
+The Fenwick Tree's simplicity comes at a cost of generality. It is naturally suited only to operations that, like sum, admit an inverse (so that a range query can be expressed as a difference of two prefix queries, exactly as in Section~\ref{sec:prefixsum}); $\min$ and $\max$ have no such inverse, so a Fenwick Tree cannot answer arbitrary range-minimum or range-maximum queries the way a Segment Tree can via Chapter~\ref{ch:general}. Range \emph{updates} are also not its basic operation: a Fenwick Tree can be adapted, with a second auxiliary array, to support range-add/point-query or even range-add/range-sum-query, but this adaptation is closer in spirit to the lazy propagation of Chapter~\ref{ch:lazy} bolted onto an unrelated structure than to a native feature of the Fenwick Tree itself.
+
+\section{Comparison Table}
+Table~\ref{tab:comparison-full} consolidates every structure discussed above. Rather than declaring one structure to be strictly superior, the appropriate conclusion is that each occupies a distinct point in the trade-off between update cost, query cost, memory, and the class of operations it supports --- exactly the axes the design checklist of Table~\ref{tab:checklist} already asks the reader to consider.
+
+\begin{table}[H]
+\centering
+\caption{Segment Tree versus the other standard range-query structures.}
+\label{tab:comparison-full}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}cccp{1.6cm}Y@{}}
+\toprule
+\tblhead{Structure} & \tblhead{Update} & \tblhead{Query} & \tblhead{Build} & \tblhead{Memory} & \tblhead{Supports} \\
+\midrule
+Na\"ive array        & $\Oh{1}$        & $\Oh{n}$        & --             & $\sim n$ & Any operation; queries require scanning the range. \\
+Prefix sum           & $\Oh{n}$        & $\Oh{1}$        & $\Oh{n}$       & $\sim n$ & Invertible operations such as sum; mainly static workloads. \\
+Sqrt decomposition   & $\Oh{\sqrt n}$  & $\Oh{\sqrt n}$  & $\Oh{n}$       & $\sim n$ & Any associative operation; simple to extend. \\
+Sparse table         & unsupported     & $\Oh{1}$        & $\Oh{n\log n}$ & $\sim n\log n$ & Idempotent operations such as min/max on static data. \\
+Fenwick tree         & $\Oh{\log n}$   & $\Oh{\log n}$   & $\Oh{n}$       & $\sim n$ & Invertible operations such as sum; simpler and less flexible. \\
+\rowcolor{lightblue!30}
+Segment tree         & $\Oh{\log n}$   & $\Oh{\log n}$   & $\Oh{n}$       & $\sim 4n$ & Broad class of associative aggregates; suitable range updates via Ch.~\ref{ch:lazy}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{remark}
+Among the structures compared here, the Segment Tree provides a particularly flexible combination of logarithmic point updates, logarithmic range queries, and support for a broad class of associative aggregates. With lazy propagation, it can also support suitable range-update operations. Other structures may be preferable when a problem has more specialized requirements, which is why the design checklist of Table~\ref{tab:checklist} is useful.
+\end{remark}
+
+% ==================================================================
+\chapter{Complexity and Practical Considerations}
+\label{ch:practical}
+
+Table~\ref{tab:summary} consolidates the complexity results derived across Chapters~\ref{ch:complexity}--\ref{ch:correctness} and extended to range updates in Chapter~\ref{ch:lazy}.
+
+\begin{table}[H]
+\centering
+\caption{Summary of Segment Tree time and space complexity.}
+\label{tab:summary}
+\begin{tabular}{llp{6.2cm}}
+\toprule
+\tblhead{Operation} & \tblhead{Time Complexity} & \tblhead{Explanation} \\
+\midrule
+Build          & $\Oh{n}$      & Every tree node is constructed exactly once (Lemma~\ref{lem:build-time}). \\
+Point update   & $\Oh{\log n}$ & Exactly one root-to-leaf path is recomputed (Lemma~\ref{lem:update-time}). \\
+Range query    & $\Oh{\log n}$ & At most $\Oh{1}$ partially-overlapping nodes are expanded per level (Theorem~\ref{thm:query-time}). \\
+Range update   & $\Oh{\log n}$ & Same overlap argument as range query, plus $\Oh{1}$ push-down per node (Lemma~\ref{lem:lazy-time}). \\
+Space          & $\Oh{n}$      & The tree occupies at most $4n$ array cells (Lemma~\ref{lem:space}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{equation}
+\boxed{
+\begin{aligned}
+\text{Build} &= \Oh{n} \\
+\text{Point update} &= \Oh{\log n} \\
+\text{Range query} &= \Oh{\log n} \\
+\text{Range update (lazy)} &= \Oh{\log n} \\
+\text{Space} &= \Oh{n}
+\end{aligned}}
+\end{equation}
+
+\section{Choosing a Structure in Practice}
+Bringing together Table~\ref{tab:comparison-full} and Table~\ref{tab:checklist}, three practical rules of thumb summarize this report's guidance:
+
+\begin{table}[H]
+\centering
+\caption{Practical decision rules for choosing among the structures compared in Chapter~\ref{ch:comparison}.}
+\label{tab:decision-rules}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.6cm}p{7.6cm}}
+\toprule
+\tblhead{If\ldots} & \tblhead{\ldots then consider} \\
+\midrule
+The array never changes & A prefix sum array (sum) or a sparse table (min/max); both give $\Oh{1}$ queries with no per-query tree traversal. \\
+Only point updates and sums are needed & A Fenwick Tree, for its smaller memory footprint and simpler implementation. \\
+Range updates, or a non-invertible merge (min, max, GCD, or a composite statistic as in Section~9.3), are needed & A Segment Tree, optionally with lazy propagation (Chapter~\ref{ch:lazy}). \\
+Implementation time is scarce and $\Oh{\sqrt n}$ is acceptable & Square-root decomposition, as a lower-risk fallback. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+The Segment Tree resolves the fundamental tension between fast range queries and fast point updates by recursively decomposing an array into a hierarchy of intervals, each summarized at a tree node (Chapter~\ref{ch:segtree}). This organization allows both operations to be performed in $\Oh{\log n}$ time after an $\Oh{n}$ build, as established by the overlap argument for queries (Theorem~\ref{thm:query-time}) and the single-path argument for updates (Lemma~\ref{lem:update-time}), and proved formally correct in Chapter~\ref{ch:correctness}.
+
+With an associative merge operation and the identity element required by the query routine, the same tree structure can be adapted to range minimum, maximum, GCD, and a wide class of composite statistics (Chapter~\ref{ch:general}). It can also be extended to suitable range-update operations through lazy propagation (Chapter~\ref{ch:lazy}) while retaining logarithmic worst-case complexity per operation (Lemma~\ref{lem:lazy-time}). This combination of generality and efficiency makes Segment Trees useful across domains such as financial time series, live leaderboards, and scheduling systems (Chapter~\ref{ch:applications}).
+
+Chapter~\ref{ch:comparison} situated the Segment Tree among other standard range-query structures. It trades some memory and implementation simplicity, relative to a Fenwick Tree, a prefix-sum array, or a sparse table, for greater flexibility in the class of aggregates and updates it can support. As Table~\ref{tab:decision-rules} makes concrete, the appropriate choice depends on whether the array is static or dynamic, whether the merge operation is invertible or idempotent, and whether updates are confined to single points or must span ranges. The Segment Tree is therefore a flexible general-purpose option when both range queries and updates must be supported efficiently.
+
+% ==================================================================
+\appendix
+\chapter{Reference Pseudocode}
+
+The following compact templates summarize the core routines described throughout the report, including the lazy-propagation extension of Chapter~\ref{ch:lazy}. They intentionally expose the merge operation and the identity element so that the same structure can be adapted to sums, minima, maxima, GCD, or another associative aggregate (Chapter~\ref{ch:general}).
+
+\begin{lstlisting}[caption={Core build, point-update, and range-query routines (no lazy propagation).}]
+build(node, lo, hi):
+    if lo == hi:
+        tree[node] = A[lo]
+        return
+    mid = (lo + hi) // 2
+    build(2*node, lo, mid)
+    build(2*node+1, mid+1, hi)
+    tree[node] = merge(tree[2*node], tree[2*node+1])
+
+update(node, lo, hi, pos, value):
+    if lo == hi:
+        tree[node] = value
+        return
+    mid = (lo + hi) // 2
+    if pos <= mid:
+        update(2*node, lo, mid, pos, value)
+    else:
+        update(2*node+1, mid+1, hi, pos, value)
+    tree[node] = merge(tree[2*node], tree[2*node+1])
+
+query(node, lo, hi, ql, qr):
+    if qr < lo or hi < ql:
+        return identity
+    if ql <= lo and hi <= qr:
+        return tree[node]
+    mid = (lo + hi) // 2
+    left = query(2*node, lo, mid, ql, qr)
+    right = query(2*node+1, mid+1, hi, ql, qr)
+    return merge(left, right)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Lazy-propagation extension for range-add / range-sum (Chapter~\ref{ch:lazy}).}]
+pushDown(node, lo, hi):
+    if lazy[node] == 0:
+        return
+    mid = (lo + hi) // 2
+    applyTag(2*node, lo, mid, lazy[node])
+    applyTag(2*node+1, mid+1, hi, lazy[node])
+    lazy[node] = 0
+
+applyTag(node, lo, hi, val):
+    tree[node] += val * (hi - lo + 1)
+    lazy[node] += val
+
+rangeUpdate(node, lo, hi, ul, ur, val):
+    if ur < lo or hi < ul:
+        return
+    if ul <= lo and hi <= ur:
+        applyTag(node, lo, hi, val)
+        return
+    pushDown(node, lo, hi)
+    mid = (lo + hi) // 2
+    rangeUpdate(2*node, lo, mid, ul, ur, val)
+    rangeUpdate(2*node+1, mid+1, hi, ul, ur, val)
+    tree[node] = tree[2*node] + tree[2*node+1]
+
+lazyQuery(node, lo, hi, ql, qr):
+    if qr < lo or hi < ql:
+        return 0
+    if ql <= lo and hi <= qr:
+        return tree[node]
+    pushDown(node, lo, hi)
+    mid = (lo + hi) // 2
+    left = lazyQuery(2*node, lo, mid, ql, qr)
+    right = lazyQuery(2*node+1, mid+1, hi, ql, qr)
+    return left + right
+\end{lstlisting}
+
+\chapter{Summary of Complexity}
+
+\begin{table}[H]
+\centering
+\caption{Final complexity reference for every structure discussed in this report.}
+\label{tab:final-complexity}
+\begin{tabular}{lccc}
+\toprule
+\tblhead{Structure} & \tblhead{Update} & \tblhead{Query} & \tblhead{Extra Space} \\
+\midrule
+Na\"ive array       & $\Oh{1}$       & $\Oh{n}$       & $\Oh{n}$ \\
+Prefix sum          & $\Oh{n}$       & $\Oh{1}$       & $\Oh{n}$ \\
+Sqrt decomposition   & $\Oh{\sqrt n}$ & $\Oh{\sqrt n}$ & $\Oh{n}$ \\
+Sparse table         & unsupported    & $\Oh{1}$       & $\Oh{n\log n}$ \\
+Fenwick tree          & $\Oh{\log n}$  & $\Oh{\log n}$  & $\Oh{n}$ \\
+\rowcolor{lightblue!30}
+Segment tree (point update) & $\Oh{\log n}$ & $\Oh{\log n}$ & $\Oh{n}$ tree storage \\
+\rowcolor{lightblue!30}
+Segment tree (lazy, range update) & $\Oh{\log n}$ & $\Oh{\log n}$ & $\Oh{n}$ tree $+$ lazy storage \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{thebibliography}{99}
+
+\bibitem{clrs}
+T.~H. Cormen, C.~E. Leiserson, R.~L. Rivest, and C.~Stein, \textit{Introduction to Algorithms}, 4th ed., MIT Press, 2022.
+
+\bibitem{cphandbook}
+A.~Laaksonen, \textit{Competitive Programmer's Handbook}, 2018.
+
+\bibitem{cpalgorithms}
+cp-algorithms, ``Segment Tree,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/segment_tree.html}
+
+\bibitem{fenwick}
+P.~M. Fenwick, ``A New Data Structure for Cumulative Frequency Tables,'' \textit{Software: Practice and Experience}, vol.~24, no.~3, pp.~327--336, 1994.
+
+\bibitem{cpalgorithms-fenwick}
+cp-algorithms, ``Fenwick Tree,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/fenwick.html}
+
+\bibitem{cpalgorithms-sparse}
+cp-algorithms, ``Sparse Table,'' \textit{Algorithms for Competitive Programming}. \url{https://cp-algorithms.com/data_structures/sparse-table.html}
+
+\end{thebibliography}
+
+\end{document}

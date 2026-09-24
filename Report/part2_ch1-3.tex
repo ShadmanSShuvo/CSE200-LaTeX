@@ -1,0 +1,397 @@
+% ============================================================
+\chapter{Introduction}
+\label{ch:intro}
+
+Data rarely stays still. Prices tick, scores change, seats are booked and released, and sensors report new readings many times per second. Yet the questions that people ask of such data are almost never about a single value: they are about \emph{ranges}. What is the total traded value between instruments 200 and 450? What was the lowest temperature recorded between 2 pm and 5 pm? Is any seat free in rows 10 through 14? Answering such questions quickly, while the underlying data continues to change, is the central problem studied in this report.
+
+The Segment Tree is one of the most widely used answers to that problem. It is compact enough to be implemented in a few dozen lines, general enough to support a large family of aggregate operations, and efficient enough to serve millions of operations per second on modest hardware. This chapter motivates the problem, states the objective of the report, and outlines how the remaining chapters are organized.
+
+\section{Motivation}
+Many computational problems require repeatedly answering queries over a contiguous portion of a dynamically changing dataset. Consider a system tracking $n$ financial instruments, where array $A$ stores their current prices. At 9:31 AM, right after the market opens, 20{,}000 prices may change every second, while the system must still answer, instantly, ``what is the total value of instruments $l$ through $r$?'' The two fundamental operations required are therefore
+
+\begin{equation}
+\operatorname{sum}(l,r) = \sum_{i=l}^{r} A[i]
+\label{eq:sum}
+\end{equation}
+
+and
+
+\begin{equation}
+\operatorname{update}(i,v),
+\label{eq:update}
+\end{equation}
+
+where $A[i]$ is modified to the value $v$.
+
+The same pattern appears in very different settings. A multiplayer game must maintain a live leaderboard while thousands of players finish matches. A ticketing platform must find contiguous free seats while other customers are booking. A monitoring dashboard must report the maximum latency of the last five minutes while new measurements stream in. In each case the system is \emph{summarizing a range and then changing part of it}, over and over.
+
+\section{Dynamic Range Query Problem}
+The difficulty arises from the interaction between queries and updates. If the array is scanned directly, a query in Equation~\eqref{eq:sum} requires $O(n)$ time. If instead a running total is maintained, every update in Equation~\eqref{eq:update} requires $O(n)$ work to keep that total valid. Neither approach scales when both operations occur frequently and at large volume: keeping the sum fresh after every update costs $O(n)$ per update, while keeping updates instantaneous costs $O(n)$ per query. This tension --- fast queries versus fast updates --- appears in any large system that must \emph{summarize a range and then change part of it}: stock feeds, leaderboards, and analytics dashboards all face it constantly.
+
+\begin{keyidea}
+Static data can be preprocessed once and queried forever. \emph{Dynamic} data cannot: every preprocessing decision made to speed up queries must be paid for again each time the data changes. The Segment Tree is a principled compromise that keeps both costs logarithmic.
+\end{keyidea}
+
+\section{Objective}
+This report presents the Segment Tree as a data structure that resolves this tension, achieving $O(\log n)$ time for both operations after an $O(n)$ preprocessing step. We derive its structure, construction, update and query algorithms, and their time complexities; work through a concrete numerical example; generalize the structure to other associative operations; and compare it against alternative approaches. Concretely, the report aims to:
+
+\begin{enumerate}[nosep]
+  \item define the range-query problem precisely and expose why simple solutions fail (Chapter~\ref{ch:problem});
+  \item introduce the Segment Tree, its invariants, and its array layout (Chapter~\ref{ch:segtree});
+  \item give and analyse algorithms for building, updating, and querying the tree (Chapters~\ref{ch:build}--\ref{ch:query});
+  \item show how a single change of the merge operation yields range minimum, maximum, GCD and more (Chapter~\ref{ch:general});
+  \item extend the structure to range updates through lazy propagation (Chapter~\ref{ch:lazy});
+  \item provide a reference implementation (Chapter~\ref{ch:impl}); and
+  \item place the structure among its alternatives and applications (Chapters~\ref{ch:apps}--\ref{ch:practical}).
+\end{enumerate}
+
+\section{Scope and Assumptions}
+Throughout the report we make the following assumptions, unless a section states otherwise.
+
+\begin{itemize}[nosep]
+  \item The array $A$ has a fixed length $n \ge 1$ and is indexed from $1$ to $n$.
+  \item The merge operation is associative, has an identity element, and can be evaluated in $O(1)$ time.
+  \item Updates replace a single value (\emph{point update}). Range updates are treated separately in Chapter~\ref{ch:lazy}.
+  \item Complexities are stated in the word-RAM model, counting one elementary arithmetic or comparison operation as one step.
+  \item Timing figures given in Chapter~\ref{ch:practical} are order-of-magnitude illustrations, not benchmarks.
+\end{itemize}
+
+\section{Notation}
+Table~\ref{tab:notation} collects the symbols used throughout the report.
+
+\begin{table}[h]
+\centering
+\caption{Summary of notation.}
+\label{tab:notation}
+\begin{tabularx}{\textwidth}{@{}>{\centering\arraybackslash}p{2.6cm} Y@{}}
+\toprule
+\tblhead{Symbol} & \tblhead{Meaning} \\
+\midrule
+$A=[a_1,\dots,a_n]$ & The underlying array of $n$ elements (1-indexed). \\
+$Q(l,r)$ & Range query over the closed interval $[l,r]$. \\
+$\operatorname{update}(i,v)$ & Point update: assign $A[i]\leftarrow v$. \\
+$[lo,hi]$ & The interval represented by a tree node. \\
+$mid$ & Midpoint $\lfloor (lo+hi)/2\rfloor$ of a node's interval. \\
+$S(l,r)$ & Summary value stored for the interval $[l,r]$. \\
+$f$, $e$ & Associative merge operation and its identity element. \\
+$h$ & Height of the tree, $h=\lceil\log_2 n\rceil$. \\
+$q$ & Total number of operations (queries plus updates). \\
+$P[i]$ & Prefix sum $\sum_{j=1}^{i}A[j]$. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Organization of the Report}
+Chapter~\ref{ch:problem} formalizes the problem and studies the two baseline solutions. Chapter~\ref{ch:segtree} introduces the Segment Tree and its structural properties. Chapters~\ref{ch:build}, \ref{ch:update} and \ref{ch:query} treat construction, point update, and range query in turn, each with a worked example on the running array
+\[
+A = [2,\,1,\,5,\,3,\,7,\,4,\,6,\,8].
+\]
+Chapter~\ref{ch:general} generalizes the merge operation, and Chapter~\ref{ch:lazy} adds lazy propagation. Chapter~\ref{ch:impl} gives a complete implementation. Chapters~\ref{ch:apps} and \ref{ch:compare} discuss applications and alternatives, Chapter~\ref{ch:practical} consolidates complexity results, and Chapter~\ref{ch:conclusion} concludes.
+
+% ============================================================
+\chapter{The Range Query Problem}
+\label{ch:problem}
+
+Before introducing the Segment Tree it is worth understanding exactly why the problem is hard. This chapter defines the problem formally, analyses the two obvious solutions, and shows that they sit at opposite ends of a trade-off that neither can escape.
+
+\section{Problem Definition}
+Let
+
+\begin{equation}
+A = [a_1, a_2, \ldots, a_n]
+\end{equation}
+
+be an array of $n$ elements. A range-sum query is defined as
+
+\begin{equation}
+Q(l,r) = \sum_{i=l}^{r} a_i, \qquad 1 \le l \le r \le n,
+\end{equation}
+
+and a point update changes a single element,
+
+\begin{equation}
+a_i \leftarrow v.
+\end{equation}
+
+A workload is a sequence of $q$ operations, each of which is either a query or an update. The goal is to process the entire workload in as little total time as possible, and preferably to bound the cost of \emph{each} operation individually.
+
+\begin{defn}[Dynamic range-query problem]
+Given an array $A$ of length $n$, maintain a data structure supporting (i)~$Q(l,r)$, returning an aggregate of $A[l..r]$, and (ii)~$\operatorname{update}(i,v)$, setting $A[i]\leftarrow v$, such that the two operations may be interleaved in any order.
+\end{defn}
+
+\section{Na\"ive Approach}
+The most direct way to answer $Q(l,r)$ is to scan the range explicitly:
+
+\begin{lstlisting}
+sum(l, r):
+    result = 0
+    for i = l to r:
+        result += A[i]
+    return result
+\end{lstlisting}
+
+For a range of length $r-l+1$, this costs $O(r-l+1)$ time, or $O(n)$ in the worst case:
+
+\begin{equation}
+T_{\text{query}}(n) = O(n).
+\end{equation}
+
+A point update, by contrast, is trivially $O(1)$ under this scheme, since only $A[i]$ is written.
+
+\begin{exmp}[Cost of scanning]
+On $A=[2,1,5,3,7,4,6,8]$, the query $Q(2,7)$ reads six elements: $1+5+3+7+4+6=26$. On an array with $n=10^6$ elements the same query may read up to a million elements, and if $10^5$ such queries arrive per second the system must perform $10^{11}$ element reads per second, which is far beyond what a single core can sustain.
+\end{exmp}
+
+\section{Limitation of Prefix Precomputation}
+An obvious optimization is to precompute prefix sums,
+
+\begin{equation}
+P[i] = \sum_{j=1}^{i} A[j],
+\end{equation}
+
+so that any range sum can be answered in constant time via
+
+\begin{equation}
+Q(l,r) = P[r] - P[l-1].
+\end{equation}
+
+For the running example the prefix array is
+\[
+P = [2,\,3,\,8,\,11,\,18,\,22,\,28,\,36],
+\]
+and, for instance, $Q(3,7) = P[7]-P[2] = 28-3 = 25$ on the original array.
+
+This makes queries $O(1)$, but it introduces the opposite problem: whenever a single element $A[i]$ changes, every prefix sum $P[j]$ for $j \ge i$ becomes invalid, so an update costs $O(n)$ to restore correctness. Figure~\ref{fig:prefixupdate} shows the damage caused by one update.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.15cm, y=1cm]
+  % original
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,1.1) {$A$ before};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,0.0) {$P$ before};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,-1.6) {$A$ after};
+  \node[font=\footnotesize\sffamily, anchor=east] at (-0.3,-2.7) {$P$ after};
+  \foreach \i/\a/\p/\b/\q in {1/2/2/2/2, 2/1/3/1/3, 3/5/8/5/8, 4/3/11/10/18, 5/7/18/7/25, 6/4/22/4/29, 7/6/28/6/35, 8/8/36/8/43} {
+    \node[segleaf] at (\i,1.1) {\a};
+    \node[segleaf] at (\i,0.0) {\p};
+  }
+  % after: unchanged cells cream, changed cells red
+  \foreach \i/\a in {1/2,2/1,3/5,5/7,6/4,7/6,8/8} { \node[segleaf] at (\i,-1.6) {\a}; }
+  \node[warnnode, minimum width=0.8cm] at (4,-1.6) {10};
+  \foreach \i/\p in {1/2,2/3,3/8} { \node[segleaf] at (\i,-2.7) {\p}; }
+  \foreach \i/\p in {4/18,5/25,6/29,7/35,8/43} { \node[warnnode, minimum width=0.8cm] at (\i,-2.7) {\p}; }
+  \draw[-{Stealth}, thick, warningred] (4,0.45) -- (4,-1.05) node[midway, right, font=\scriptsize, text=warningred] {update$(4,10)$};
+  \foreach \i in {1,...,8} \node[idx] at (\i,1.75) {\i};
+\end{tikzpicture}
+\caption{A single point update $A[4]\leftarrow 10$ invalidates five prefix sums (shaded red), $P[4]$ through $P[8]$. In general an update at index $i$ invalidates $n-i+1$ entries.}
+\label{fig:prefixupdate}
+\end{figure}
+
+This gives the fundamental trade-off summarized in Table~\ref{tab:tradeoff}.
+
+\begin{table}[h]
+\centering
+\caption{Trade-off between query and update cost across approaches.}
+\label{tab:tradeoff}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Query} & \textbf{Point Update} \\
+\midrule
+Na\"ive array  & $O(n)$      & $O(1)$ \\
+Prefix sum     & $O(1)$      & $O(n)$ \\
+Segment Tree   & $O(\log n)$ & $O(\log n)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The Cost Trade-off Visualized}
+The situation can be seen more clearly by plotting the cost per operation of each approach as $n$ grows. In Figure~\ref{fig:tradeoffplot} the na\"ive query cost and the prefix-sum update cost both grow linearly, while the Segment Tree cost for either operation stays close to the horizontal axis.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.82\textwidth, height=6.2cm,
+  xlabel={Array size $n$}, ylabel={Elementary steps per operation},
+  xmin=0, xmax=1024, ymin=0, ymax=1100,
+  grid=both, grid style={line width=.1pt, draw=navy!12}, major grid style={line width=.2pt, draw=navy!25},
+  legend pos=north west, legend style={font=\footnotesize, draw=navy!40, fill=white, fill opacity=0.9, text opacity=1},
+  label style={font=\small}, tick label style={font=\footnotesize},
+  every axis plot/.append style={thick}
+]
+\addplot[color=warningred, domain=1:1024, samples=2] {x};
+\addlegendentry{Na\"ive query / prefix update: $n$}
+\addplot[color=deepblue, domain=2:1024, samples=100] {ln(x)/ln(2)};
+\addlegendentry{Segment Tree: $\log_2 n$}
+\end{axis}
+\end{tikzpicture}
+\caption{Cost per operation as a function of $n$. The linear cost of the two baselines eventually dominates, while the logarithmic Segment Tree cost is almost invisible on this scale.}
+\label{fig:tradeoffplot}
+\end{figure}
+
+\section{Need for a Dynamic Data Structure}
+Neither extreme is acceptable when queries and updates are interleaved at scale. What is needed is a structure that balances both costs rather than optimizing one at the expense of the other. The Segment Tree achieves exactly this balance by decomposing the array into a hierarchy of intervals and storing a summary for each one, so that both operations touch only $O(\log n)$ nodes instead of $O(n)$ or $O(1)$-with-a-hidden-$O(n)$-cost elsewhere.
+
+\begin{remark}
+A useful way to think about the trade-off is as a question of \emph{where} the work is done. The na\"ive array does all its work at query time; the prefix array does all its work at update time. The Segment Tree deliberately spreads the work: each update pays a small amount to keep a hierarchy of partial answers fresh, and each query pays a small amount to combine a handful of those partial answers.
+\end{remark}
+
+% ============================================================
+\chapter{The Segment Tree}
+\label{ch:segtree}
+
+This chapter introduces the Segment Tree as a data structure: what it stores, how its nodes correspond to intervals, and which structural properties make its operations efficient.
+
+\section{Basic Idea}
+A Segment Tree is a binary tree built over an array, where each node represents a contiguous sub-interval of the array and stores a summary value for that interval. The root represents the entire array; each internal node's interval is split into two halves, assigned to its left and right children; and each leaf represents a single array element. Instead of touching the whole array on every operation, the tree recursively splits the problem in half, solves each half, and combines the two answers --- and only $O(\log n)$ splits are ever needed to reach any particular piece.
+
+\begin{keyidea}
+A Segment Tree precomputes the answer to a carefully chosen family of $\approx 2n$ intervals --- the \emph{dyadic} intervals obtained by repeated halving --- such that every range $[l,r]$ can be written as a disjoint union of $O(\log n)$ of them.
+\end{keyidea}
+
+\section{Structure of a Segment Tree}
+For an array of size $n$, the tree has height $h = \lceil \log_2 n \rceil$, and consequently $O(n)$ nodes in total (at most $\sim\!2n$ for a complete binary tree representation). Each level of the tree partitions $[1,n]$ into disjoint, contiguous sub-intervals that together cover the whole array exactly once.
+
+Table~\ref{tab:levels} shows how the intervals at each level of the tree for $n=8$ partition the array.
+
+\begin{table}[h]
+\centering
+\caption{Level-by-level partition of $[1,8]$ in the Segment Tree of the running example.}
+\label{tab:levels}
+\begin{tabular}{clcc}
+\toprule
+\tblhead{Level} & \tblhead{Intervals at this level} & \tblhead{Nodes} & \tblhead{Interval length} \\
+\midrule
+0 & $[1,8]$ & 1 & 8 \\
+1 & $[1,4],\ [5,8]$ & 2 & 4 \\
+2 & $[1,2],\ [3,4],\ [5,6],\ [7,8]$ & 4 & 2 \\
+3 & $[1,1],\ [2,2],\ \dots,\ [8,8]$ & 8 & 1 \\
+\midrule
+\multicolumn{2}{r}{\textbf{Total}} & \textbf{15} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Interval Representation}
+Each node is identified by the interval $[lo, hi]$ it represents. If $lo = hi$, the node is a leaf corresponding to $A[lo]$. Otherwise, letting
+
+\begin{equation}
+mid = \left\lfloor \frac{lo+hi}{2} \right\rfloor,
+\end{equation}
+
+the node's left child represents $[lo, mid]$ and its right child represents $[mid+1, hi]$.
+
+\section{Stored Information and Merge Operation}
+For every node representing interval $[l,r]$, define the stored summary as
+
+\begin{equation}
+S(l,r) = \sum_{i=l}^{r} A[i].
+\end{equation}
+
+Given the midpoint $m = \lfloor (l+r)/2 \rfloor$, the summary satisfies the recursive relation
+
+\begin{equation}
+S(l,r) = S(l,m) + S(m+1,r).
+\label{eq:merge}
+\end{equation}
+
+This is the \emph{merge operation}: a parent's summary is obtained by combining its two children's summaries. For sum queries the merge is addition, but as shown in Chapter~\ref{ch:general}, any associative operation can be substituted in its place.
+
+\section{Structural Properties}
+Several simple facts about the tree are used repeatedly in later chapters. We state them here with short proofs.
+
+\begin{lem}[Partition property]\label{lem:partition}
+For every level $d$ of the tree, the intervals of the nodes at level $d$ are pairwise disjoint, and their union is contained in $[1,n]$.
+\end{lem}
+\begin{proof}
+By induction on $d$. At level $0$ there is a single node $[1,n]$. If the claim holds at level $d$, each node $[lo,hi]$ at that level is replaced at level $d+1$ by the two disjoint intervals $[lo,mid]$ and $[mid+1,hi]$ whose union is $[lo,hi]$; nodes with $lo=hi$ have no children. Disjointness and containment are therefore preserved.
+\end{proof}
+
+\begin{lem}[Height]\label{lem:height}
+A Segment Tree over $n\ge 1$ elements has height $\lceil \log_2 n\rceil$.
+\end{lem}
+\begin{proof}
+Each split at least halves the interval length, rounding the larger half up: an interval of length $m$ splits into lengths $\lceil m/2\rceil$ and $\lfloor m/2\rfloor$. After $d$ splits the longest interval therefore has length at most $\lceil n/2^{d}\rceil$, which equals $1$ exactly when $2^d\ge n$, i.e.\ when $d\ge\lceil\log_2 n\rceil$.
+\end{proof}
+
+\begin{lem}[Node count]\label{lem:nodes}
+A Segment Tree over $n$ elements has exactly $2n-1$ nodes.
+\end{lem}
+\begin{proof}
+The tree is a full binary tree (every internal node has exactly two children) with $n$ leaves. In any full binary tree the number of internal nodes is one less than the number of leaves, so the total is $n+(n-1)=2n-1$.
+\end{proof}
+
+For $n=8$ this gives $15$ nodes, matching Table~\ref{tab:levels}.
+
+\section{Array Layout and Index Arithmetic}
+Segment Trees are almost always stored in a flat array rather than with explicit pointers. Numbering the root as node $1$, the children of node $k$ are
+
+\begin{equation}
+\operatorname{left}(k) = 2k, \qquad \operatorname{right}(k) = 2k+1, \qquad \operatorname{parent}(k)=\lfloor k/2\rfloor.
+\label{eq:heap}
+\end{equation}
+
+This is the same layout used by binary heaps, and it removes the memory overhead of child pointers. Figure~\ref{fig:layout} shows the correspondence for the running example.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.0cm, y=1cm]
+  % tree with node numbers
+  \node[segnode, minimum width=1.0cm] (n1) at (6,3.3) {\textbf{1}};
+  \node[segnode, minimum width=1.0cm] (n2) at (3,2.2) {\textbf{2}};
+  \node[segnode, minimum width=1.0cm] (n3) at (9,2.2) {\textbf{3}};
+  \node[segnode, minimum width=1.0cm] (n4) at (1.5,1.1) {\textbf{4}};
+  \node[segnode, minimum width=1.0cm] (n5) at (4.5,1.1) {\textbf{5}};
+  \node[segnode, minimum width=1.0cm] (n6) at (7.5,1.1) {\textbf{6}};
+  \node[segnode, minimum width=1.0cm] (n7) at (10.5,1.1) {\textbf{7}};
+  \foreach \i/\x in {8/0.75, 9/2.25, 10/3.75, 11/5.25, 12/6.75, 13/8.25, 14/9.75, 15/11.25}
+    \node[segleaf, minimum width=1.0cm] (n\i) at (\x,0) {\textbf{\i}};
+  \foreach \p/\c in {1/2,1/3,2/4,2/5,3/6,3/7,4/8,4/9,5/10,5/11,6/12,6/13,7/14,7/15}
+    \draw[segedge] (n\p)--(n\c);
+  % flat array beneath
+  \foreach \k in {1,...,15} {
+    \node[draw=navy, fill=lightblue!35, minimum width=0.75cm, minimum height=0.6cm, font=\scriptsize] (a\k) at ({0.75*\k-0.1},-1.5) {\k};
+  }
+  \node[font=\footnotesize\sffamily, anchor=east] at (0.15,-1.5) {tree[\,]};
+  \draw[-{Stealth}, navy!60] (n2.south west) to[bend right=15] (a2.north);
+  \draw[-{Stealth}, navy!60] (n4.south west) to[bend right=15] (a4.north);
+  \draw[-{Stealth}, navy!60] (n9.south) to[bend right=8] (a9.north);
+\end{tikzpicture}
+\caption{Heap-style numbering of the Segment Tree for $n=8$ (top) and the flat array that stores it (bottom). Node $k$ has children $2k$ and $2k+1$.}
+\label{fig:layout}
+\end{figure}
+
+\subsection{How Much Memory Is Enough?}
+When $n$ is not a power of two the tree is not perfect, and heap-style indices can reach values larger than $2n-1$. A safe bound comes from Lemma~\ref{lem:height}: the deepest node has index below $2^{h+1}$, where $h=\lceil\log_2 n\rceil$. Since $2^{h}<2n$, we get $2^{h+1}<4n$. This is why implementations conventionally allocate $4n$ cells, as in Table~\ref{tab:heights}.
+
+\begin{table}[h]
+\centering
+\caption{Height and memory for several array sizes.}
+\label{tab:heights}
+\begin{tabular}{rrrrr}
+\toprule
+\tblhead{$n$} & \tblhead{Height $\lceil\log_2 n\rceil$} & \tblhead{Nodes $2n-1$} & \tblhead{Safe bound $2^{h+1}$} & \tblhead{Rule of thumb $4n$} \\
+\midrule
+8              & 3  & 15              & 16              & 32 \\
+100            & 7  & 199             & 256             & 400 \\
+1{,}000        & 10 & 1{,}999         & 2{,}048         & 4{,}000 \\
+1{,}024        & 10 & 2{,}047         & 2{,}048         & 4{,}096 \\
+$10^6$         & 20 & 1{,}999{,}999   & 2{,}097{,}152   & 4{,}000{,}000 \\
+$10^9$         & 30 & 1{,}999{,}999{,}999 & 2{,}147{,}483{,}648 & 4{,}000{,}000{,}000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}
+The true number of nodes is always $2n-1$ (Lemma~\ref{lem:nodes}); the $4n$ allocation only pays for the unused gaps that appear in the heap-style numbering when $n$ is not a power of two.
+\end{remark}
+
+\section{Invariants}
+A correct Segment Tree maintains one invariant at all times, which every algorithm in the following chapters must preserve:
+
+\begin{equation}
+\text{for every node } v \text{ with interval } [l,r]:\qquad \operatorname{tree}[v] = \sum_{i=l}^{r}A[i].
+\label{eq:invariant}
+\end{equation}
+
+Construction establishes the invariant, queries only read it, and updates must repair it on exactly the nodes where it could have been broken.

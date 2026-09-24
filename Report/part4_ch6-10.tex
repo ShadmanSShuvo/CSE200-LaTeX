@@ -1,0 +1,273 @@
+% ==================================================================
+%  PART 4 --- Chapter 6 (Correctness), Chapter 7 (Implementation
+%  Design and Practical Issues), Chapter 8 (Lazy Propagation),
+%  Chapter 9 (Generalization), Chapter 10 (Applications)
+%  Paste this directly after the last line of part3 (the remark
+%  closing the Worked Example chapter) and before whatever chapter
+%  currently follows it.
+% ==================================================================
+
+\chapter{Correctness}
+\label{ch:correctness}
+
+Chapter~\ref{ch:complexity} established \emph{how fast} the three core algorithms run; this short chapter states \emph{why they are right}, tying each argument back to the invariant of Equation~\eqref{eq:invariant} and the lemmas already proved in Chapter~\ref{ch:segtree}.
+
+\section{The Invariant, Restated}
+Every correctness argument in this report reduces to one statement, repeated here for convenience:
+\begin{equation}
+\text{for every node } v \text{ with interval } [l,r]:\qquad \operatorname{tree}[v] = S(l,r) = \sum_{i=l}^{r}A[i].
+\tag{\ref{eq:invariant} revisited}
+\end{equation}
+\texttt{build} establishes it, \texttt{query} only reads it, and \texttt{update} must restore it after exactly one leaf changes.
+
+\begin{table}[H]
+\centering
+\caption{Correctness postcondition of each core operation.}
+\label{tab:invariants}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.0cm}p{9.4cm}}
+\toprule
+\tblhead{Operation} & \tblhead{Postcondition} \\
+\midrule
+Build        & Every node satisfies Equation~\eqref{eq:invariant} for its own interval. \\
+Point update & Every node on the root-to-leaf path for $pos$ is recomputed from already-correct children; every other node is untouched and remains correct because its interval does not contain $pos$. \\
+Range query  & The set of nodes returned directly (the fully-covered case) is pairwise disjoint and its union is exactly $[ql,qr]$; merging them therefore gives $S(ql,qr)$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Correctness of Build}
+\begin{thm}[Build correctness]\label{thm:build-correct}
+After \texttt{build(1,1,n)} completes, Equation~\eqref{eq:invariant} holds at every node.
+\end{thm}
+\begin{proof}
+By induction on subtree height. A leaf $[lo,lo]$ is assigned $\text{tree}[node]=A[lo]=S(lo,lo)$ directly, the base case. For an internal node $[lo,hi]$ with $mid=\lfloor(lo+hi)/2\rfloor$, the two recursive calls establish the invariant at the children $[lo,mid]$ and $[mid+1,hi]$ by the inductive hypothesis, and the subsequent merge sets $\text{tree}[node]=\text{tree}[2\cdot node]+\text{tree}[2\cdot node+1]=S(lo,mid)+S(mid+1,hi)=S(lo,hi)$ by Equation~\eqref{eq:merge}.
+\end{proof}
+
+\section{Correctness of Update}
+\begin{thm}[Update correctness]\label{thm:update-correct}
+If Equation~\eqref{eq:invariant} holds before \texttt{update(1,1,n,pos,val)} and $A[pos]$ is conceptually set to \texttt{val}, then Equation~\eqref{eq:invariant} again holds at every node after the call returns.
+\end{thm}
+\begin{proof}
+By Lemma~\ref{lem:update-path}, the nodes containing $pos$ form exactly the root-to-leaf path visited by the recursion, and only these nodes have their interval's sum affected by the change to $A[pos]$; every node off this path has an interval that excludes $pos$, so its correct value $S(l,r)$ is unaffected by the change and, since the algorithm never modifies it, it remains correct. Along the path, the leaf is set directly to \texttt{val} $=S(pos,pos)$, and each ancestor is recomputed as the merge of its two children on the way back up the recursion; since both children are correct at the moment of merging (the deeper one by having just been fixed, the shallower sibling by not having changed), Equation~\eqref{eq:merge} guarantees the parent becomes correct as well. Induction up the path completes the argument.
+\end{proof}
+
+\section{Correctness of Range Query}
+\begin{thm}[Query correctness]\label{thm:query-correct}
+Assuming Equation~\eqref{eq:invariant} holds throughout, \texttt{query(1,1,n,ql,qr)} returns $S(ql,qr)$.
+\end{thm}
+\begin{proof}
+Every value returned by the recursion is one of: the identity (no-overlap case), a stored $\text{tree}[node]=S(lo,hi)$ for a node fully contained in $[ql,qr]$ (total-overlap case), or a merge of two such recursively-correct values (partial-overlap case). The no-overlap contributions vanish under the merge since the identity leaves a merge unchanged. What remains is a sum of $S(l_i,r_i)$ over the fully-covered nodes reached by the recursion. These intervals are pairwise disjoint by Lemma~\ref{lem:partition} restricted to the nodes actually visited, and their union is exactly $[ql,qr]$: every index in $[ql,qr]$ eventually lands inside some node that becomes fully covered, because the recursion only stops descending once a node's interval is entirely inside $[ql,qr]$ or entirely outside it, and it always reaches a leaf if neither holds. By additivity of $S$ over a partition of $[ql,qr]$, the sum of the disjoint pieces equals $S(ql,qr)$.
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:query-correct}'s disjoint-cover argument is exactly what Figure~\ref{fig:query-example} illustrates concretely: the two green nodes $[1,2]$ and $[3,4]$ are disjoint and their union is $[1,4]$, the requested range.
+\end{remark}
+
+% ==================================================================
+\chapter{Implementation Design and Practical Issues}
+\label{ch:implementation}
+
+The preceding chapters fix the algorithmic content of a Segment Tree; this chapter addresses the engineering decisions that turn that content into working code.
+
+\section{Array-Based Representation, Revisited}
+Section~\ref{sec:build} already introduced the heap-style array layout of Equation~\eqref{eq:heap} and its $4n$ allocation rule (Lemma~\ref{lem:space}). This remains the default choice: it avoids pointer objects entirely, keeps sibling and parent access to simple arithmetic, and gives predictable, cache-friendly memory access compared to a pointer-based tree.
+
+\section{Indexing Conventions}
+\label{sec:indexing}
+This report's mathematical exposition uses one-indexed intervals such as $[1,n]$ throughout, matching the code listings. Most production languages use zero-based arrays, in which case the interval becomes $[0,n-1]$ and every occurrence of $mid=\lfloor(lo+hi)/2\rfloor$, the leaf test $lo=hi$, and the child ranges $[lo,mid]$/$[mid+1,hi]$ carry over unchanged in form --- only the array's own bounds shift. Mixing the two conventions within a single implementation, rather than choosing one and committing to it, is the most common source of off-by-one bugs in Segment Tree code.
+
+\begin{pitfall}
+A particularly common variant of this bug is querying with an inclusive-exclusive range $[ql,qr)$ against a tree built with inclusive-inclusive intervals $[lo,hi]$. The no-overlap and total-overlap conditions in Table~\ref{tab:query-cases} are only correct for two intervals using the \emph{same} convention.
+\end{pitfall}
+
+\section{Recursive Versus Iterative Implementations}
+The recursive form used throughout Algorithms~\ref{alg:build}--\ref{alg:query} mirrors the mathematical definitions directly and is the easiest to verify against the proofs of Chapter~\ref{ch:correctness}. An iterative, bottom-up formulation over the same heap-style array avoids function-call overhead and is common in performance-sensitive competitive-programming code, at the cost of being noticeably harder to adapt once lazy propagation (Chapter~\ref{ch:lazy}) is introduced. Both forms implement the identical interval decomposition; the choice is an engineering trade-off, not a difference in asymptotic behavior.
+
+\section{Numeric Type and Overflow}
+For a sum Segment Tree, the stored aggregate at the root can be up to $n$ times larger than any individual element. A 32-bit integer type that comfortably holds each $A[i]$ can silently overflow when summing $n$ of them; 64-bit integers are the conventional safe default for sum aggregates over anything but the smallest inputs. This concern does not apply in the same way to $\min$, $\max$, or GCD trees (Chapter~\ref{ch:general}), whose stored values never exceed the range of the input elements themselves.
+
+\begin{table}[H]
+\centering
+\caption{Implementation decisions and the reasoning behind the conventional default.}
+\label{tab:implementation}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.0cm}p{6.0cm}}
+\toprule
+\tblhead{Concern} & \tblhead{Typical choice} & \tblhead{Reason} \\
+\midrule
+Node storage & Flat array & Low overhead, predictable memory access (Section~\ref{ch:implementation}). \\
+Tree allocation & $4n$ cells & Safe bound under heap-style indexing (Lemma~\ref{lem:space}). \\
+Numeric type (sum) & 64-bit integer & Root aggregate can be $n\times$ larger than any element. \\
+Indexing & One consistent convention & Prevents boundary/midpoint mismatches (Section~\ref{sec:indexing}). \\
+Recursion depth & $\Oh{\log n}$ & Safe for essentially all practical $n$ (Lemma~\ref{lem:height}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Lazy Propagation}
+\label{ch:lazy}
+
+\section{The Problem with Naive Range Updates}
+Every algorithm so far modifies a single array position per update. A \emph{range update} --- for example, ``add $5$ to every element in $[3,7]$'' --- has no efficient naive implementation on a Segment Tree: applying Algorithm~\ref{alg:update} once per index in the range costs $\Oh{r-l+1}$ point updates, each $\Oh{\log n}$, for a total of $\Oh{(r-l+1)\log n}$, which degrades to $\Oh{n\log n}$ for a full-array update. This defeats the purpose of the data structure.
+
+\begin{keyidea}
+Lazy propagation defers work: instead of eagerly pushing a range update down to every affected leaf, a node records a pending change and applies it to its \emph{own} stored aggregate immediately, but only pushes the pending change further down to its children the next time that subtree is actually visited.
+\end{keyidea}
+
+\section{Lazy Tags}
+Each node gains a second array, conventionally called \texttt{lazy}, storing a pending increment not yet applied to the node's children. A node's own \texttt{tree} value is always kept up to date --- it already reflects its own pending tag --- but its children's \texttt{tree} values may be stale until the tag is \emph{pushed down}.
+
+\begin{lstlisting}[style=cpp, caption={Pushing a pending tag down to both children before recursing into either one.}, label={alg:pushdown}]
+void pushDown(int node, int lo, int hi) {
+    if (lazy[node] == 0) return;
+    int mid = (lo + hi) / 2;
+    int lLen = mid - lo + 1, rLen = hi - mid;
+
+    tree[2*node]     += lazy[node] * lLen;
+    lazy[2*node]      += lazy[node];
+    tree[2*node+1]   += lazy[node] * rLen;
+    lazy[2*node+1]    += lazy[node];
+
+    lazy[node] = 0;                       // fully delegated
+}
+\end{lstlisting}
+
+\section{Range Update}
+A range update applies the same three-way case split as \texttt{query} (Table~\ref{tab:query-cases}): a node fully inside the update range absorbs the change directly and tags its children lazily instead of recursing; a node with no overlap is pruned; a partially overlapping node must first push down any tag of its own, then recurse into both children, then re-merge.
+
+\begin{lstlisting}[style=cpp, caption={Range update with lazy propagation (add \texttt{val} to every element in $[ul,ur]$).}, label={alg:rangeupdate}]
+void rangeUpdate(int node, int lo, int hi, int ul, int ur, int val) {
+    if (ur < lo || hi < ul) return;                       // no overlap
+    if (ul <= lo && hi <= ur) {                            // total overlap
+        tree[node] += val * (hi - lo + 1);
+        lazy[node] += val;
+        return;
+    }
+    pushDown(node, lo, hi);                                 // partial overlap
+    int mid = (lo + hi) / 2;
+    rangeUpdate(2*node,   lo,    mid, ul, ur, val);
+    rangeUpdate(2*node+1, mid+1, hi,  ul, ur, val);
+    tree[node] = tree[2*node] + tree[2*node+1];
+}
+\end{lstlisting}
+
+\section{Range Query Under Lazy Propagation}
+The query algorithm (Algorithm~\ref{alg:query}) needs exactly one addition: a call to \texttt{pushDown} before recursing into a partially overlapping node, so that stale children are corrected before their values are read.
+
+\begin{lstlisting}[style=cpp, caption={Range query, adapted for a tree with lazy tags.}, label={alg:lazyquery}]
+int query(int node, int lo, int hi, int ql, int qr) {
+    if (qr < lo || hi < ql) return 0;
+    if (ql <= lo && hi <= qr) return tree[node];
+    pushDown(node, lo, hi);                    // only new line vs. Algorithm 3
+    int mid = (lo + hi) / 2;
+    int left  = query(2*node,   lo,    mid, ql, qr);
+    int right = query(2*node+1, mid+1, hi,  ql, qr);
+    return left + right;
+}
+\end{lstlisting}
+
+\begin{lem}[Lazy operation time]\label{lem:lazy-time}
+With lazy propagation, both \texttt{rangeUpdate} and \texttt{query} run in $\Oh{\log n}$ time.
+\end{lem}
+\begin{proof}
+The recursion structure of \texttt{rangeUpdate} is identical to that of Algorithm~\ref{alg:query} (Table~\ref{tab:query-cases} governs both), so the same overlap argument used in Theorem~\ref{thm:query-time} bounds the number of visited nodes by $\Oh{\log n}$. Each visited node now also performs a \texttt{pushDown}, which is $\Oh{1}$ work, so the total remains $\Oh{\log n}$. The query analysis is unchanged from Theorem~\ref{thm:query-time} except for the same $\Oh{1}$-per-node \texttt{pushDown} addition.
+\end{proof}
+
+\begin{pitfall}
+Omitting the \texttt{pushDown} call inside \texttt{query} (or inside \texttt{rangeUpdate}'s partial-overlap branch) is the single most common bug in lazy Segment Tree implementations: the parent's \texttt{tree} value is correct, but a child read directly --- without first being corrected --- may still reflect a stale value from before a pending tag was applied.
+\end{pitfall}
+
+% ==================================================================
+\chapter{Generalization of Segment Trees}
+\label{ch:general}
+
+\section{Associativity Is the Only Requirement}
+One of the most useful properties of the Segment Tree is that its \emph{shape} --- the recursive interval decomposition proved correct in Chapter~\ref{ch:correctness} --- never changes when the underlying problem changes; only the stored summary and the merge rule $f$ need to be redefined. The sole requirement on $f$ is \textbf{associativity}:
+\begin{equation}
+f(f(a,b),c) = f(a,f(b,c)) \quad \text{for all } a,b,c.
+\label{eq:assoc}
+\end{equation}
+Associativity is exactly what Theorem~\ref{thm:build-correct}'s induction and Theorem~\ref{thm:query-correct}'s disjoint-cover argument rely on: neither proof used any property of addition beyond Equation~\eqref{eq:assoc} and the existence of an identity element $e$ with $f(x,e)=x$, used to seed the no-overlap case of Table~\ref{tab:query-cases}.
+
+\begin{table}[h]
+\centering
+\caption{The same Segment Tree structure, generalized to other associative merge operations.}
+\label{tab:generalization}
+\begin{tabular}{llll}
+\toprule
+\tblhead{Problem} & \tblhead{Node stores} & \tblhead{Merge rule} & \tblhead{Identity} \\
+\midrule
+Range sum      & Sum      & $a+b$         & $0$ \\
+Range minimum  & Minimum  & $\min(a,b)$   & $+\infty$ \\
+Range maximum  & Maximum  & $\max(a,b)$   & $-\infty$ \\
+Range GCD      & GCD      & $\gcd(a,b)$   & $0$ \\
+\rowcolor{lightblue!30}
+Any associative rule & Any summary & swap in the rule & swap in the identity \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Range Minimum, Maximum, and GCD}
+For each row of Table~\ref{tab:generalization}, Algorithms~\ref{alg:build}--\ref{alg:query} are \emph{structurally unchanged} --- only the merge line (the single addition in each listing) is replaced, e.g.\ \texttt{tree[node] = min(tree[2*node], tree[2*node+1])} for range minimum. Because Theorem~\ref{thm:build-correct} through Theorem~\ref{thm:query-correct} and the complexity bounds of Chapter~\ref{ch:complexity} used nothing about $+$ beyond associativity and the identity property, all of them --- $\Oh{n}$ build, $\Oh{\log n}$ update, $\Oh{\log n}$ query --- carry over unchanged to every row of the table, and to any other associative operation not listed.
+
+\begin{remark}
+Range minimum and maximum are not, in general, invertible the way sum is: there is no operation $g$ with $g(\min(a,b),a)=b$ analogous to subtraction undoing addition. This is why a \emph{point} update (Algorithm~\ref{alg:update}) works unchanged for $\min$/$\max$ trees --- it recomputes ancestors from children rather than trying to ``undo'' a stale value --- while certain range-update tricks that exploit invertibility for sum trees do not transfer to $\min$/$\max$ without modification.
+\end{remark}
+
+\section{Composite Node Summaries}
+A node need not store a single scalar. It may store a small structure of several jointly-merged statistics, provided the combined structure itself satisfies Equation~\eqref{eq:assoc}. A classic example is the \emph{maximum-subarray-sum} query: each node stores its interval's total sum, best prefix sum, best suffix sum, and best subarray sum, and the merge rule combines two children's four-tuples into a parent four-tuple in $\Oh{1}$ time. This turns the Segment Tree from a range-aggregate container into a general framework for a much larger class of interval algorithms.
+
+\section{When Not to Use a Segment Tree}
+A Segment Tree is not automatically the best choice for every range problem, and the design checklist below is meant to be worked through before committing to one.
+
+\begin{table}[H]
+\centering
+\caption{Design checklist for selecting and implementing a Segment Tree.}
+\label{tab:checklist}
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.2cm}p{8.0cm}}
+\toprule
+\tblhead{Question} & \tblhead{Design implication} \\
+\midrule
+What is queried? & Defines the node summary and merge operation $f$. \\
+What is updated? & Point updates only, or ranges? The latter needs lazy propagation (Chapter~\ref{ch:lazy}). \\
+Is the merge associative? & Required for Table~\ref{tab:query-cases}'s decomposition to be well defined at all. \\
+Is an identity required? & Needed so the no-overlap case (Table~\ref{tab:query-cases}) has something neutral to return. \\
+Are there any updates at all? & If not, a plain prefix-sum array answers range sums in $\Oh{1}$ with no tree. \\
+Is the operation just addition with point updates? & A Fenwick Tree (Chapter~\ref{ch:comparison}) gives the same $\Oh{\log n}$ bounds with less memory and a simpler implementation. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==================================================================
+\chapter{Applications}
+\label{ch:applications}
+
+Table~\ref{tab:applications} surveys representative domains where the Segment Tree's core pattern --- \emph{summarize a range, then change part of it, repeatedly and at scale} --- arises naturally, extending the financial-instrument scenario first introduced in Section~\ref{sec:motivation}.
+
+\begin{table}[h]
+\centering
+\caption{Representative applications of the Segment Tree.}
+\label{tab:applications}
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{4.2cm}p{5.3cm}}
+\toprule
+\tblhead{Application} & \tblhead{Dynamic data} & \tblhead{Possible query} \\
+\midrule
+Financial time series & Prices over time & Sum/min/max over a time interval \\
+Leaderboards & Player scores & Range statistics; augmented for rank/$k$-th order \\
+Scheduling \& booking & Time-slot availability & Aggregate availability; augmented for longest run \\
+Analytics dashboards & Continuously changing measurements & Range minimum/maximum/sum \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Time-Series Data}
+In a system tracking financial instrument prices --- the running motivating example of Section~\ref{sec:motivation} --- a plain sum Segment Tree already supports instant range-sum, range-min, or range-max queries over any contiguous time window, even as thousands of price updates arrive per second, at the worst-case $\Oh{\log n}$ per operation guaranteed by Theorem~\ref{thm:query-time} and Lemma~\ref{lem:update-time}.
+
+\section{Leaderboards}
+The plain sum tree described up to this point does not, by itself, answer rank or $k$-th-largest queries. However, per the generalization principle of Chapter~\ref{ch:general}, the same tree shape can be \emph{augmented} to store score-frequency counts at each node rather than a running sum, which allows rank queries and $k$-th-order-statistic lookups to be answered in $\Oh{\log n}$, with score updates handled just as fast.
+
+\section{Scheduling and Booking}
+Similarly, locating or reserving a free contiguous range of seats or time slots requires an augmented Segment Tree in which each node stores additional composite information --- such as the count of free slots together with the longest prefix, suffix, and interior run of free slots within its interval, in the spirit of Section~9.3's maximum-subarray example --- so that availability queries and reservations can still be resolved in $\Oh{\log n}$.
+
+\section{Other Dynamic Range Problems}
+More generally, any system that must repeatedly answer ``what is true across this range?'' while ``something inside the range keeps changing'' is a candidate for a Segment Tree, regardless of the specific domain, provided a suitable associative merge (Section~9.1) can be found for whatever ``true across this range'' means for that problem.
