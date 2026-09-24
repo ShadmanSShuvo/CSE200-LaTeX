@@ -1,0 +1,77 @@
+\documentclass{article}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, positioning}
+
+% ---------- Styles ----------
+
+\tikzset{
+    startstop/.style={
+        rounded rectangle,
+        draw,
+        thick,
+        fill=green!15,
+        minimum width=28mm,
+        minimum height=9mm,
+        align=center
+    },
+    process/.style={
+        rectangle,
+        draw,
+        thick,
+        fill=blue!10,
+        minimum width=32mm,
+        minimum height=9mm,
+        align=center
+    },
+    decision/.style={
+        diamond,
+        draw,
+        thick,
+        fill=yellow!20,
+        aspect=2,
+        align=center
+    }
+}
+
+\begin{document}
+
+\begin{tikzpicture}[node distance=12mm]
+
+    % Nodes
+    \node[startstop] (start) {Start};
+
+    \node[process, below=of start] (input) {Read Input};
+
+    \node[decision, below=of input] (check) {Valid?};
+
+    \node[process, below left=15mm and 20mm of check] (error)
+        {Show Error};
+
+    \node[process, below right=15mm and 20mm of check] (process)
+        {Process Data};
+
+    \node[startstop, below=20mm of process] (stop)
+        {End};
+
+    % Arrows
+    \draw[->, thick] (start) -- (input);
+
+    \draw[->, thick] (input) -- (check);
+
+    \draw[->, thick]
+        (check) -- node[left] {No} (error);
+
+    \draw[->, thick]
+        (check) -- node[right] {Yes} (process);
+
+    \draw[->, thick]
+        (process) -- (stop);
+
+    % Error loop
+    \draw[->, thick]
+        (error) |- (input);
+
+\end{tikzpicture}
+
+\end{document}

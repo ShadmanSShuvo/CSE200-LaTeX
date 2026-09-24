@@ -1,0 +1,32 @@
+\documentclass{article}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{tikzpicture}[
+    level 1/.style={sibling distance=45mm},
+    level 2/.style={sibling distance=22mm},
+    every node/.style={
+        circle,
+        draw,
+        thick,
+        minimum size=9mm,
+        fill=blue!10
+    }
+]
+
+\node {50}
+    child {
+        node {30}
+        child {node {20}}
+        child {node {40}}
+    }
+    child {
+        node {70}
+        child {node {60}}
+        child {node {80}}
+    };
+
+\end{tikzpicture}
+
+\end{document}
